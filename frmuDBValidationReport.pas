@@ -119,7 +119,7 @@ begin
   frmReport   := Nil;
   lValidation := Nil;
   try
-    frmReport:=TfrmDBValidationReport.Create(Application);
+    frmReport:=TfrmDBValidationReport.Create(Application.MainForm);
     frmReport.stxDatabaseName.Caption := CurrSelDatabase.NodeName;
     frmReport.stxDatabaseName.Hint := CurrSelDatabase.NodeName;
 

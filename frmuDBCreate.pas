@@ -2,19 +2,19 @@
  * The contents of this file are subject to the InterBase Public License
  * Version 1.0 (the "License"); you may not use this file except in
  * compliance with the License.
- * 
+ *
  * You may obtain a copy of the License at http://www.Inprise.com/IPL.html.
- * 
+ *
  * Software distributed under the License is distributed on an "AS IS"
  * basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. See
  * the License for the specific language governing rights and limitations
  * under the License.  The Original Code was created by Inprise
  * Corporation and its predecessors.
- * 
+ *
  * Portions created by Inprise Corporation are Copyright (C) Inprise
  * Corporation. All Rights Reserved.
- * 
- * Contributor(s): ______________________________________.
+ *
+ * Contributor(s): Krzysztof Golko.
 }
 
 {****************************************************************
@@ -86,7 +86,7 @@ function CreateDB(var DBAlias: string; var DatabaseFiles: TStringList; const Sel
 
 implementation
 
-uses zluGlobal,frmuMessage, zluContextHelp, zluUtility, Registry;
+uses zluGlobal,frmuMessage, zluContextHelp, zluUtility, zluPersistent;
 
 {$R *.DFM}
 
@@ -128,9 +128,9 @@ var
   iRow: Integer;                      // row counter for database string grid
   lStr: String;                       // string value for starting page
 begin
-  frmDBCreate := TfrmDBCreate.Create(Application);
+  frmDBCreate := TfrmDBCreate.Create(Application.MainForm);
+  lDatabase := TIBDatabase.Create(nil); // create database object
   try
-    lDatabase := TIBDatabase.Create(Nil); // create database object
                                           // set server name in form
     frmDBCreate.stxServer.Caption := SelServerNode.Servername;
     frmDBCreate.FCurrSelServer := SelServerNode;
@@ -200,6 +200,7 @@ begin
   finally
     // deallocate memory
     frmDBCreate.Free;
+    lDatabase.Free;
   end;
 end;
 
@@ -237,7 +238,6 @@ var
   iMax      : Integer;                 // max row
   iPageSize : Integer;                 // integer page size
   lGridRect : TGridRect;               // current gridregion being validated
-  lRegistry : TRegistry;
 begin
   result := true;                      // assume all data is valid
 
@@ -250,17 +250,14 @@ begin
     Exit;
   end;
 
-  lRegistry := TRegistry.Create;
-  if lRegistry.KeyExists(Format('%s%s\Databases\%s',[gRegServersKey,FCurrSelServer.Nodename,edtDBAlias.Text])) then
+  if PersistentInfo.DatabaseAliasExists(FCurrSelServer.NodeName, edtDBAlias.Text) then
   begin                                // show error message
     DisplayMsg(ERR_DB_ALIAS,'This database alias already exists.');
     edtDBAlias.SetFocus;               // give focus to control
     result := false;
-    lRegistry.Free;
     Exit;
   end;
-  lRegistry.Free;
-  
+
   // determine the maximum number of rows that have been used
   iMax:=1;
   while (iMax < sgDatabaseFiles.RowCount - 1) and
@@ -392,10 +389,10 @@ begin
   sgOptions.Cells[OPTION_VALUE_COL,PAGE_SIZE_ROW] := '4096';
 
   sgOptions.Cells[OPTION_NAME_COL,DEFAULT_CHARSET_ROW] := 'Default Character Set';
-  sgOptions.Cells[OPTION_VALUE_COL,DEFAULT_CHARSET_ROW] := 'None';
+  sgOptions.Cells[OPTION_VALUE_COL,DEFAULT_CHARSET_ROW] := gAppSettings[CHARACTER_SET].Setting;
 
   sgOptions.Cells[OPTION_NAME_COL,SQL_DIALECT_ROW] := 'SQL Dialect';
-  sgOptions.Cells[OPTION_VALUE_COL,SQL_DIALECT_ROW] := '3';
+  sgOptions.Cells[OPTION_VALUE_COL,SQL_DIALECT_ROW] := gAppSettings[DEFAULT_DIALECT].Setting;
 
   pnlOptionName.Caption := 'Page Size';
   cbOptions.Items.Add('1024');

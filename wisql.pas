@@ -13,8 +13,8 @@
  * 
  * Portions created by Inprise Corporation are Copyright (C) Inprise
  * Corporation. All Rights Reserved.
- * 
- * Contributor(s): ______________________________________.
+ *
+ * Contributor(s): Jeff Overcash, Krzysztof Golko.
 }
 
 unit wisql;
@@ -25,7 +25,7 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   Menus, ComCtrls, ToolWin, ExtCtrls, StdCtrls, Grids, DBGrids,
   Db, ImgList, StdActns, ActnList, zluibcClasses, IB, IBDatabase, IBCustomDataset,
-  zluSQL;
+  zluSQL, MemoLists;
 
 type
 
@@ -36,23 +36,6 @@ type
   TUpdateObjectEvent = procedure (const Database: TIBDatabase;
                                   const ObjectType: integer) of Object;
   TDropDBEvent = procedure of Object;
-
-  TQryList = class
-  private
-    FAtLast,
-    FAtFirst: boolean;
-    FCurrQuery: integer;
-    FQueryArray: array of TStringList;
-  public
-    function GetNextQuery: TStrings;
-    function GetPrevQuery: TStrings;
-    function AtLastQuery: boolean;
-    function AtFirstQuery: boolean;
-    procedure ClearList;
-    procedure AddQueryList(const Query: TStrings);
-    destructor Destroy; override;
-    constructor Create;
-  end;
 
   TdlgWisql = class(TForm)
     pgcOutput: TPageControl;
@@ -91,14 +74,11 @@ type
     stbISQL: TStatusBar;
     Print1: TMenuItem;
     Close1: TMenuItem;
-    TransactionActions: TActionList;
     TransactionCommit: TAction;
     TransactionRollback: TAction;
-    DialectActions: TActionList;
     DialectAction1: TAction;
     DialectAction2: TAction;
     DialectAction3: TAction;
-    QueryActions: TActionList;
     QueryPrevious: TAction;
     QueryNext: TAction;
     QueryExecute: TAction;
@@ -107,7 +87,6 @@ type
     QueryOptions: TAction;
     QuerySaveOutput: TAction;
     pmLastFiles: TPopupMenu;
-    FileActions: TActionList;
     FileOptions: TAction;
     FileClose: TAction;
     QueryPrepare: TAction;
@@ -141,7 +120,6 @@ type
     TabStats: TTabSheet;
     lvStats: TListView;
     Prepare1: TMenuItem;
-    DatabaseActions: TActionList;
     DatabaseConnectAs: TAction;
     DatabaseDisconnect: TAction;
     DatabaseCreate: TAction;
@@ -168,6 +146,10 @@ type
     N3: TMenuItem;
     FontDialog1: TFontDialog;
     FindDialog1: TFindDialog;
+    actWisql: TActionList;
+    mnuPrev: TPopupMenu;
+    mnuNext: TPopupMenu;
+    Newconnection1: TMenuItem;
     procedure QueryExecuteExecute(Sender: TObject);
     procedure QueryLoadScriptExecute(Sender: TObject);
     procedure QuerySaveScriptExecute(Sender: TObject);
@@ -202,12 +184,15 @@ type
     procedure FormResize(Sender: TObject);
     procedure Windows1Click(Sender: TObject);
     procedure QueryPreviousUpdate(Sender: TObject);
-    procedure QueryNextUpdate(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure QuerySaveOutputUpdate(Sender: TObject);
     procedure DatabaseDisconnectUpdate(Sender: TObject);
     procedure DatabaseConnectAsUpdate(Sender: TObject);
     procedure FindDialog1Find(Sender: TObject);
+    procedure mnuPrevPopup(Sender: TObject);
+    procedure NavMenuClick(Sender: TObject);
+    procedure mnuNextPopup(Sender: TObject);
+    procedure Newconnection1Click(Sender: TObject);
   private
     { Private declarations }
     FDatabase: TIBDatabase;
@@ -228,7 +213,7 @@ type
     FCurrSQLDialect: integer;
     FConnected: boolean;
     FAutoDDL: boolean;
-    FQueryBuffer: TQryList;
+    FQueryBuffer: TMemoList;
 
     procedure UpdateConnectStatus(const Connected: boolean);
     procedure UpdateTransactionStatus (const active: boolean);
@@ -243,10 +228,14 @@ type
 
   public
     { Public declarations }
+    New_connection:boolean;
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     procedure ShowDialog;
     function CheckTransactionStatus(const Closing: boolean): boolean;
+    function ConnectAsDatabase(Sender: Tobject): boolean;
+    function CreateDatabase(Sender: TObject): boolean;
+
   published
     property OnCreateDatabase: TCreateDBEvent read FOnCreateDB write FOnCreateDB;
     property OnConnectDatabase: TConnectDBEvent read FOnConnectDB write FOnConnectDB;
@@ -264,19 +253,9 @@ type
 implementation
 
 uses frmuMessage, zluGlobal, frmuSQLOptions, frmuDisplayBlob,
-     frmuDispMemo, zluContextHelp, Printers, fileCtrl, zluUtility, Registry,
-     frmuMain, IBSQL, RichEdit;
+     frmuDispMemo, zluContextHelp, Printers, fileCtrl, zluUtility,
+     frmuMain, IBSQL, RichEdit, Math;
 
-type
-  TWinState = packed record
-    _Top,
-    _Left,
-    _Height,
-    _Width: integer;
-    _State: TWindowState;
-    _Read: boolean;
-  end;
-  
 const
   OBJECTNAME = '\ISQL';
 {$R *.DFM}
@@ -302,21 +281,28 @@ begin
 end;
 
 procedure TdlgWisql.QueryNextExecute(Sender: TObject);
+var
+  iQry: TStrings;
 begin
-  try
-    reSQLInput.Lines := FQueryBuffer.GetNextQuery;
-  except on E: Exception do
+  // New QryList
+  iQry := FQueryBuffer.GetNext;
+  if Assigned(iQry) then
+    reSQLInput.Lines := iQry
+  else
     reSQLInput.Clear;
-  end;
+  reSQLInput.Modified := FALSE;
 end;
 
 procedure TdlgWisql.QueryPreviousExecute(Sender: TObject);
+var
+  iQry: TStrings;
 begin
-  try
-    reSQLInput.Lines := FQueryBuffer.GetPrevQuery;
-  except on E: Exception do
+  iQry := FQueryBuffer.GetPrev;
+  if Assigned(iQry) then
+    reSQLInput.Lines := iQry
+  else
     reSQLInput.Clear;
-  end;
+  reSQLInput.Modified := FALSE;
 end;
 
 procedure TdlgWisql.QuerySaveScriptExecute(Sender: TObject);
@@ -383,10 +369,9 @@ end;
 procedure TdlgWisql.QueryExecuteExecute(Sender: TObject);
 var
   ISQLObj: TIBSQLObj;
-  Stats: TStringList;
 begin
   if not Assigned(FDatabase) then
-    FDatabase := TIBDatabase.Create (self);
+    FDatabase := TIBDatabase.Create(self);
 
   if Assigned (FQryDataSet) then
   begin
@@ -394,7 +379,7 @@ begin
     FQryDataSet.Free;
   end;
 
-  FQryDataSet := TIBDataSet.Create (self);
+  FQryDataSet := TIBDataSet.Create(self);
 
   if Assigned (FDefaultTransaction) then
     FQryDataset.Transaction := FDefaultTransaction
@@ -410,16 +395,12 @@ begin
   end;
 
   reSQLOutput.Clear;
-  // Kris commented
-  //reSQLOutput.SelAttributes.Assign(reSqlInput.SelAttributes);
   ISQLObj := nil;
-  Stats := nil;
   try
     lvStats.Items.BeginUpdate;
     lvStats.Items.Clear;
     lvStats.Items.EndUpdate;
 
-    Stats := TStringList.Create;
     ISQLObj := TIBSqlObj.Create (Self);
     try
       with ISQLObj do
@@ -440,10 +421,16 @@ begin
         lvStats.Items.EndUpdate;
         DoIsql;
         Cursor := crDefault;
-        Stats := StatisticsList;
-        FQueryBuffer.AddQueryList(reSqlInput.Lines);
+        if reSQLInput.Modified then
+        begin
+          FQueryBuffer.Add(reSqlInput.Lines);
+          reSQLInput.Modified := false;
+        end;
         if gAppSettings[CLEAR_INPUT].Setting then
+        begin
           reSQLInput.Clear;
+          FQueryBuffer.MovePast;
+        end;
       end;
     except on
       E: EIsqlException do
@@ -476,12 +463,12 @@ begin
       end;
     end;
   finally
-    FDefaultTransaction := Database.Transactions[FDefaultTransIDX];
-    FDDLTransaction := Database.Transactions[FDDLTransIDX];
+//    FDefaultTransaction := Database.Transactions[FDefaultTransIDX];
+//    FDDLTransaction := Database.Transactions[FDDLTransIDX];
     GridSource.DataSet := FQryDataset;
     FDefaultTransaction := FQryDataset.Transaction;
     UpdateTransactionStatus ((FDefaultTransaction.InTransaction) or (FDDLTransaction.InTransaction));
-    ShowStatistics (Stats);
+    ShowStatistics (ISQLObj.StatisticsList);
     ISQLObj.Free;
   end;
 end;
@@ -553,8 +540,7 @@ begin
   else
     UpdateTransactionStatus (false);
 
-  FQueryBuffer.Free;
-  FQueryBuffer := TQryList.Create;
+  FQueryBuffer.Clear;
   Show;
   frmMain.UpdateWindowList(Caption, TObject(Self));
 end;
@@ -578,8 +564,8 @@ procedure TdlgWisql.reSqlInputKeyPress(Sender: TObject; var Key: Char);
 begin
   if (Key = #10) and (GetKeyState(VK_CONTROL) < 0) then
   begin
-    QueryExecuteExecute(Sender);
     Key := #0;
+    QueryExecuteExecute(Sender);
   end
   else
     UpdateCursor(Sender);
@@ -744,7 +730,7 @@ begin
   { On create, the input window is always 1/2 of the window }
   reSQLInput.Height := Self.Height div 2;
 
-  FQueryBuffer := TQryList.Create;
+  FQueryBuffer := TMemoList.Create;
 end;
 
 destructor TdlgWisql.Destroy;
@@ -839,7 +825,7 @@ end;
 
 procedure TdlgWisql.dbgSQLResultsCellClick(Column: TColumn);
 begin
-  if Column.Field.DataType in [ftMemo, ftBlob] then
+  if Assigned(Column.Field) and (Column.Field.DataType in [ftMemo, ftBlob]) then
     Column.ButtonStyle := cbsEllipsis;
 end;
 
@@ -938,30 +924,11 @@ begin
 end;
 
 procedure TdlgWisql.FormClose(Sender: TObject; var Action: TCloseAction);
-var
-  Reg: TRegistry;
-  State: TWinState;
-
 begin
   if CheckTransactionStatus (true) then
   begin
     frmMain.UpdateWindowList(Self.Caption, TObject(Self), true);
-    with State do
-    begin
-      _Top := Top;
-      _Left := Left;
-      _Height := Height;
-      _Width := Width;
-      _State := WindowState;
-      _Read := true;
-    end;
-    Reg := TRegistry.Create;
-    with Reg do begin
-      OpenKey(gRegSettingsKey,false);
-      WriteBinaryData('SQLState', State, sizeof(State));
-      CloseKey;
-      Free;
-    end;
+    Action := caFree;
   end
   else
     Action := caNone;
@@ -1025,28 +992,20 @@ end;
 
 procedure TdlgWisql.Disconnect1Click(Sender: TObject);
 begin
-  if CheckTransactionStatus (false) then
-  begin
-    if not FConnected then
-      frmMain.DatabaseDisconnect.OnExecute (sender)
-    else
-      FDatabase.Connected := false;
-
-    if not Assigned(FDatabase.Handle) then
-    begin
-      frmMain.UpdateWindowList(Caption, TObject(Self), true);
-      UpdateConnectStatus(false);
-      frmMain.UpdateWindowList(Caption, TObject(Self));
-      FDatabase.BeforeDisconnect := nil;
-    end;
-  end;
+  if new_connection then
+    FDatabase.Connected:=False;
+  if not new_connection then
+    frmMain.DatabaseDisconnectExecute(Self);
+  Newconnection1.Enabled:=True;
+  Caption := 'Interactive SQL';
 end;
 
 procedure TdlgWisql.Connect1Click(Sender: TObject);
 begin
   if CheckTransactionStatus (false) then
   begin
-    if frmMain.ConnectAsDatabase (Sender) then
+    new_connection:=false;
+    if frmMain.ConnectAsDatabase(Self) then
     begin
       frmMain.UpdateWindowList(Caption, TObject(Self), true);
       UpdateConnectStatus(Assigned(FDatabase.Handle));
@@ -1055,14 +1014,16 @@ begin
     end;
     resqlInput.Clear;
     reSQLOutput.Clear;
+    Newconnection1.Enabled:=False;
   end;
 end;
 
 procedure TdlgWisql.Create1Click(Sender: TObject);
 begin
+  New_Connection:=false;
   if CheckTransactionStatus(false) then
   begin
-    if frmMain.CreateDatabase (Sender) then
+    if CreateDatabase (Sender) then
     begin
       frmMain.UpdateWindowList(Caption, TObject(Self), true);
       UpdateConnectStatus(true);
@@ -1160,8 +1121,6 @@ end;
 
 procedure TdlgWisql.FormResize(Sender: TObject);
 begin
-  { On resize, force the input window to be 1/2 the size of the window }
-  pnlEnterSQL.Height := (Self.ClientHeight div 2);
   reSQLInput.Refresh;
 end;
 
@@ -1183,7 +1142,7 @@ begin
       sbData.Panels[0].Text := 'Not Connected';
       reSqlInput.Clear;
       reSQLOutput.Clear;
-      FQueryBuffer.ClearList;
+      FQueryBuffer.Clear;
       FConnected := false;
     end;
   end;
@@ -1200,99 +1159,15 @@ begin
   stbISQL.Panels[2].Text := Format ('Client dialect %d',[FCurrSQLDialect]);
 end;
 
-{ TQryList }
-
-procedure TQryList.AddQueryList(const Query: TStrings);
-begin
-
-  if not Assigned (FQueryArray) then
-    SetLength(FQueryArray, 1)
-  else
-    SetLength(FQueryArray, Length(FQueryArray)+1);
-
-  FQueryArray[High(FQueryArray)] := TStringList.Create;
-  FQueryArray[High(FQueryArray)].AddStrings(Query);
-  FCurrQuery := Length(FQueryArray);
-  FAtFirst := false;
-end;
-
-function TQryList.AtFirstQuery: boolean;
-begin
-    result := FAtFirst;
-end;
-
-function TQryList.AtLastQuery: boolean;
-begin
-    result := FAtLast;
-end;
-
-procedure TQryList.ClearList;
-var
-  lCnt: integer;
-begin
-  for lCnt := Low(FQueryArray) to High(FQueryArray) do
-    FQueryArray[lCnt].Free;
-
-  SetLength(FQueryArray, 0);
-  FAtLast := true;
-  FAtFirst:= true;
-  FCurrQuery := -1;
-end;
-
-constructor TQryList.Create;
-begin
-  FCurrQuery := -1;
-  FAtLast := true;
-  FAtFirst := true;
-end;
-
-destructor TQryList.Destroy;
-var
-  lCnt: integer;
-begin
-  for lCnt := Low(FQueryArray) to High(FQueryArray) do
-    FQueryArray[lCnt].Free;
-  inherited;
-end;
-
-function TQryList.GetNextQuery: TStrings;
-begin
-  if FCurrQuery < Length(FQueryArray) then
-  begin
-    result := FQueryArray[FCurrQuery+1];
-    Inc (FCurrQuery);
-    FAtLast := (FCurrQuery = Length(FQueryArray));
-  end
-  else begin
-    result := nil;
-    FAtLast := true;
-  end;
-  FAtFirst := false;
-end;
-
-function TQryList.GetPrevQuery: TStrings;
-begin
-  if FCurrQuery >= 0 then
-  begin
-    result := FQueryArray[FCurrQuery-1];
-    Dec(FCurrQuery);
-    FAtFirst := (FCurrQuery = 0);
-  end
-  else begin
-    result := nil;
-    FAtFirst := true;
-  end;
-  FAtLast := false;
-end;
-
 procedure TdlgWisql.QueryPreviousUpdate(Sender: TObject);
 begin
-  (Sender as TAction).Enabled := not FQueryBuffer.AtFirstQuery;
-end;
-
-procedure TdlgWisql.QueryNextUpdate(Sender: TObject);
-begin
-  (Sender as TAction).Enabled := not FQueryBuffer.AtLastQuery;
+  if FQueryBuffer.BOC then
+    if FQueryBuffer.Count <> 0 then
+      (Sender as TAction).Enabled := reSqlInput.Modified
+    else
+      (Sender as TAction).Enabled := false
+  else
+    (Sender as TAction).Enabled := true;
 end;
 
 procedure TdlgWisql.ShowStatistics(const Stats: TStringList);
@@ -1512,4 +1387,141 @@ begin
   end;
 end;
 
+procedure TdlgWisql.mnuPrevPopup(Sender: TObject);
+var
+  i, line : Integer;
+  t : TMenuItem;
+  sList : TStrings;
+begin
+  while mnuPrev.Items.Count > 0 do
+    mnuPrev.Items[0].Free;
+  if FQueryBuffer.JustPast or
+     ((reSqlInput.Text = '') or (reSqlInput.Modified)) then
+    i := FQueryBuffer.Current
+  else
+    i := FQueryBuffer.Current - 1;
+  while (i >= 0) and (i >= FQueryBuffer.Current - 10) do
+  begin
+    t := TMenuItem.Create(mnuPrev);
+    mnuPrev.Items.Add(t);
+    {First non blank line}
+    line := 0;
+    sList := FQueryBuffer[i];
+    while (line < sList.Count) and (Trim(sList[line]) = '') do
+      Inc(Line);
+    t.Caption := Trim(sList[line]);
+    t.Tag := i;
+    t.OnClick := NavMenuClick;
+    Dec(i);
+  end;
+end;
+
+procedure TdlgWisql.NavMenuClick(Sender: TObject);
+var
+  iQry: TStrings;
+begin
+  iQry := FQueryBuffer.Items[TMenuItem(Sender).Tag];
+  FQueryBuffer.Current := TMenuItem(Sender).Tag;
+  if Assigned(iQry) then
+    reSQLInput.Lines := iQry
+  else
+    reSQLInput.Clear;
+  reSQLInput.Modified := FALSE;
+end;
+
+procedure TdlgWisql.mnuNextPopup(Sender: TObject);
+var
+  i, line : Integer;
+  t : TMenuItem;
+  sList : TStrings;
+begin
+  while mnuNext.Items.Count > 0 do
+    mnuNext.Items[0].Free;
+  if FQueryBuffer.JustPast then
+    i := FQueryBuffer.Current
+  else
+    i := FQueryBuffer.Current + 1;
+  while (FQueryBuffer.Count > 0) and
+        (i < FQueryBuffer.Count) and
+        (i < FQueryBuffer.Current + 10) do
+  begin
+    t := TMenuItem.Create(mnuPrev);
+    mnuNext.Items.Add(t);
+    {First non blank line}
+    line := 0;
+    sList := FQueryBuffer[i];
+    while (line < sList.Count) and (Trim(sList[line]) = '') do
+      Inc(Line);
+    t.Caption := Trim(sList[line]);
+    t.Tag := i;
+    t.OnClick := NavMenuClick;
+    Inc(i);
+  end;
+end;
+
+function TdlgWisql.ConnectAsDatabase(Sender: Tobject): boolean;
+begin
+  FDataBase:=TIBDataBase.Create(self);
+  if frmMain.CurrSelDatabase.Database.Connected then begin
+      FDataBase.DatabaseName:=frmMain.CurrSelDatabase.Database.DatabaseName;
+      FDataBase.Params.Text:=frmMain.CurrSelDatabase.Database.Params.Text;
+      FDataBase.SQLDialect:=frmMain.CurrSelDatabase.DataBase.SQLDialect;
+      FDataBase.LoginPrompt:=False;
+      FDataBase.Open;
+      result := true;
+  end else begin
+    try
+      result := true;
+      if Assigned(frmMain.CurrSelServer) and Assigned(frmMain.CurrSelDatabase) then begin
+        if not frmMain.CurrSelDatabase.Database.Connected then
+          frmMain.DoDBConnect(frmMain.CurrSelServer,frmMain.CurrSelDatabase,false,false);
+      end;
+      FDataBase.DatabaseName := frmMain.CurrSelDatabase.Database.DatabaseName;
+      FDataBase.Params.Text := frmMain.CurrSelDatabase.Database.Params.Text;
+      FDataBase.SQLDialect := frmMain.CurrSelDatabase.DataBase.SQLDialect;
+      FDataBase.LoginPrompt := False;
+      frmMain.CurrSelDatabase.Database.Connected := False;
+      FDataBase.Open;
+    except
+      result := false;
+    end;
+  end;
+end;
+
+function TdlgWisql.CreateDatabase(Sender: TObject): boolean;
+begin
+  try
+    result := true;
+    frmMain.DatabaseCreateExecute(Sender);
+    if Assigned (frmMain.CurrSelDatabase) then begin
+      FDataBase:=TIBDataBase.Create(self);
+      FDataBase.DatabaseName:=frmMain.CurrSelDatabase.Database.DatabaseName;
+      FDataBase.Params.Text:=frmMain.CurrSelDatabase.Database.Params.Text;
+      FDataBase.SQLDialect:=frmMain.CurrSelDatabase.DataBase.SQLDialect;
+      FDataBase.LoginPrompt:=False;
+      FDataBase.Open;
+    end;
+  except
+    result := false;
+  end;
+end;
+
+procedure TdlgWisql.Newconnection1Click(Sender: TObject);
+begin
+  if CheckTransactionStatus (false) then begin
+    new_connection:=true;
+    if ConnectAsDatabase(Self) then begin
+      frmMain.UpdateWindowList(Caption, TObject(Self), true);
+      UpdateConnectStatus(Assigned(FDatabase.Handle));
+      frmMain.UpdateWindowList(Caption, TObject(Self));
+      FConnected := false;
+    end;
+    resqlInput.Clear;
+    reSQLOutput.Clear;
+    Newconnection1.Enabled:=False;
+    Caption := 'Interactive SQL - ' + ExtractFileName(Database.DatabaseName);
+  end;
+end;
+
 end.
+

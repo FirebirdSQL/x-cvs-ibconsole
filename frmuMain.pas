@@ -1,18 +1,21 @@
-{****************************************************************
-*
-*  f r m u M a i n
-*
-****************************************************************
-*  Author: The Client Server Factory Inc.
-*  Date:   March 1, 1999
-*
-*  Description:  This unit provides an interface which acts as the
-*                main switchboard for the application
-*
-*****************************************************************
-* Revisions:
-*
-*****************************************************************}
+{
+ * The contents of this file are subject to the InterBase Public License
+ * Version 1.0 (the "License"); you may not use this file except in
+ * compliance with the License.
+ *
+ * You may obtain a copy of the License at http://www.Inprise.com/IPL.html.
+ *
+ * Software distributed under the License is distributed on an "AS IS"
+ * basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. See
+ * the License for the specific language governing rights and limitations
+ * under the License.  The Original Code was created by Inprise
+ * Corporation and its predecessors.
+ *
+ * Portions created by Inprise Corporation are Copyright (C) Inprise
+ * Corporation. All Rights Reserved.
+ *
+ * Contributor(s):  Jeff Overcash, Krzysztof Golko.
+}
 
 unit frmuMain;
 interface
@@ -22,18 +25,9 @@ uses Windows, Classes, Graphics, Forms, Controls, Menus, Dialogs, StdCtrls,
   Registry, zluibcClasses, IBServices, IB, Messages, SysUtils,
   RichEdit, DB, IBCustomDataSet, IBSQL, IBQuery, IBHeader, IBDatabase,
   IBDatabaseInfo, frmuDlgClass, ActnList, StdActns, wisql, frmuObjectWindow,
-  IBExtract;
+  IBExtract, AppEvnts, zluPersistent;
 
 type
-  TWinState = record
-    _Top,
-    _Left,
-    _Height,
-    _Width: integer;
-    _State: TWindowState;
-    _Read: boolean;
-  end;
-
   TfrmMain = class(TForm)
     stbMain: TStatusBar;
     clbMain: TCoolBar;
@@ -100,10 +94,8 @@ type
     N24: TMenuItem;
     N25: TMenuItem;
     tvMain: TTreeView;
-    ServerConnectedActions: TActionList;
     ServerLogout: TAction;
     ServerSecurity: TAction;
-    DatabaseConnectedActions: TActionList;
     DatabaseDisconnect: TAction;
     DatabaseProperties: TAction;
     DatabaseSweep: TAction;
@@ -113,18 +105,14 @@ type
     DatabaseShutdown: TAction;
     DatabaseRestart: TAction;
     DatabaseDrop: TAction;
-    ServerActions: TActionList;
     ServerLogin: TAction;
-    DatabaseActions: TActionList;
     DatabaseRegister: TAction;
     DatabaseUnregister: TAction;
     DatabaseConnect: TAction;
     DatabaseConnectAs: TAction;
     DatabaseCreate: TAction;
-    ToolActions: TActionList;
     ExtToolsLaunchISQL: TAction;
     ExtToolsConfigure: TAction;
-    BackupActions: TActionList;
     DatabaseBackup: TAction;
     DatabaseRestore: TAction;
     BackupRestoreModifyAlias: TAction;
@@ -175,14 +163,12 @@ type
     Register5: TMenuItem;
     CreateDatabase3: TMenuItem;
     N7: TMenuItem;
-    LogActions: TActionList;
     ViewServerLog: TAction;
-    UserActions: TActionList;
     UserAdd: TAction;
     UserModify: TAction;
     UserDelete: TAction;
     pmUsers: TPopupMenu;
-    UIActions: TActionList;
+    actMain: TActionList;
     ConsoleExit: TAction;
     ViewList: TAction;
     ViewReport: TAction;
@@ -231,7 +217,6 @@ type
     ServerActionProps: TAction;
     DatabaseActionsProperties: TAction;
     pmDBObjects: TPopupMenu;
-    DBObjectProperties: TActionList;
     ObjectDescription: TAction;
     ObjectCreate: TAction;
     ObjectModify: TAction;
@@ -261,6 +246,7 @@ type
     N28: TMenuItem;
     ObjectRefresh: TAction;
     Refresh1: TMenuItem;
+    ConnectAs3: TMenuItem;
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
@@ -361,32 +347,26 @@ type
     procedure ObjectModifyUpdate(Sender: TObject);
     procedure DatabaseShutdownUpdate(Sender: TObject);
     procedure ObjectRefreshExecute(Sender: TObject);
+    procedure ToolsSQLExecute1(Sender: TObject);
 
   private
     { Private declarations }
     FErrorState: boolean;
-    FCurrSelDatabase: TibcDatabaseNode;
     FCurrSelServer: TibcServerNode;
+    FCurrSelDatabase: TibcDatabaseNode;
     FCurrSelTreeNode: TibcTreeNode;
     FPrevSelTreeNode: TibcTreeNode;
-    FRegistry: TRegistry;
+    FPersistentInfo: TibcPersistentInfo;
     FTableData : TIBQuery;
     FRefetch,
     FViewSystemData: Boolean;
     FQryDataSet: TIBDataSet;
     FDefaultTransaction: TIBTransaction;
-    FWisql: TdlgWisql;
     FToolMenuIdx: integer;
-    FLastActions: TActionList;
+    FLastActions: String;
     FWindowList: TStringList;
-    FObjectWindowState,
-    FISQLWindowState,
-    FMainWindowState: TWinState;
     FNILLDATABASE: TIBDatabase;
 
-    function DoDBConnect(const SelServerNode: TibcServerNode;
-      var SelDatabaseNode: TibcDatabaseNode;
-      const SilentLogin: boolean): boolean;
     function DoDBDisconnect(var SelDatabaseNode: TibcDatabaseNode): boolean;
     function GetBackupFiles(const SelServerNode: TibcServerNode): integer;
     function GetDDLScript: integer;
@@ -397,20 +377,21 @@ type
     function RegisterBackupFile(const SelServerNode: TibcServerNode;
       const SourceDBAlias,BackupAlias: string;
       BackupFiles: TStringList): boolean;
+
     function RegisterDatabase(const SelServerNode: TibcServerNode; const DBAlias,
-      UserName,Password,Role: string; DatabaseFiles: TStringList;
+      UserName,Password,Role,CharacterSet: string; DatabaseFiles: TStringList;
       SaveAlias, CaseSensitive: boolean; var NewDatabase: TIBDatabase): boolean;
+
     function RegisterServer(const ServerName,ServerAlias,UserName,Password,Description: string; Protocol: TProtocol; SaveAlias: boolean; LastAccess: TDateTime): boolean;
     function UnRegisterServer(const Node: String): boolean;
     function IsDBRegistered(const DBFile : String; var ExistingDBAlias : String) : Boolean;
     procedure DeleteNode(const Node: TTreeNode; const ChildNodesOnly: boolean);
     function DoServerLogin(const SilentLogin: boolean): boolean;
     procedure FillObjectList(const CurrSelNode: TibcTreeNode);
-    procedure InitRegistry;
     procedure InitTreeView;
     procedure ReadRegistry;
     procedure AddTreeRootNode (const ObjType: Integer; const Parent: TTreeNode);
-    procedure FillActionList (const ActionList: TActionList);
+    procedure FillActionList (const Action: String);
 
     { WISQL Event Methods }
     procedure EventDatabaseCreate (var Database: TIBDatabase);
@@ -424,13 +405,20 @@ type
     procedure RenameTreeNode(SelTreeNode: TibcTreeNode; NewNodeName: string);
     procedure DisplayWindow(Sender: TObject);
     function AliasExists(const AliasName: String): boolean;
+    function DoDBConnect(const SelServerNode: TibcServerNode;
+      SelDatabaseNode: TibcDatabaseNode;
+      const SilentLogin: boolean; refresh:boolean): boolean;
     { WISQL hooks for main form objects }
     function CreateDatabase(Sender: TObject): boolean;
     function ConnectAsDatabase(Sender: TObject): boolean;
     procedure UpdateWindowList(const Caption: String; const Window: TObject;
       const Remove: boolean = false);
     procedure ShowWindows;      
-    procedure SetErrorState;      
+    procedure SetErrorState;
+    property CurrSelServer: TibcServerNode read FCurrSelServer write FCurrSelServer;
+    property CurrSelDatabase: TibcDatabaseNode read FCurrSelDatabase write FCurrSelDatabase;
+    property PersistentInfo: TibcPersistentInfo read FPersistentInfo;
+
   end;
 
 var
@@ -480,6 +468,7 @@ begin
                            ParamL);
 end;
 
+
 {****************************************************************
 *
 *  F o r m C l o s e ( )
@@ -501,41 +490,11 @@ end;
 *
 *****************************************************************}
 procedure TfrmMain.FormClose(Sender: TObject; var Action: TCloseAction);
-var
-  lCnt: Integer;
-  state: TWinState;
 begin
   gApplShutdown := true;
-  with FRegistry do begin
-    OpenKey(gRegSettingsKey,false);
-    with State do
-    begin
-      _Top := Top;
-      _Left := Left;
-      _Height := Height;
-      _Width := Width;
-      _State := WindowState;
-      _Read := true;
-    end;
-    
-    WriteBinaryData('MainState', State, sizeof(State));
-    for lCnt := 0 to NUM_SETTINGS - 1 do begin
-      {If something happened reading the registry, make sure that the settings
-       are valid before trying to write them.  Otherwise, the app will not
-       close}
-      case TVarData(gAppSettings[lCnt].Setting).VType of
-        varBoolean:
-          WriteBool(gAppSettings[lCnt].Name, gAppSettings[lCnt].Setting);
-        varString:
-          WriteString(gAppSettings[lCnt].Name, gAppSettings[lCnt].Setting);
-        varInteger:
-          WriteInteger(gAppSettings[lCnt].Name, gAppSettings[lCnt].Setting);
-      end;
-    end;
-    CloseKey;
-  end;
+  FPersistentInfo.StoreFormSettings(Self, 'MainState');
+  FPersistentInfo.StoreSettings(gAppSettings);
   FTableData.Free;
-  FWisql.Free;
   FWindowList.Free;
 end;
 
@@ -576,111 +535,90 @@ begin
   tvMain.Width := Width div 3;
 
   gApplShutdown := false;
-  SetLength (gWinTempPath, MAX_PATH);
-  GetTempPath(MAX_PATH,PChar(gWinTempPath));
+  gExternalApps := nil;
   FCurrSelServer := nil;
   FCurrSelDatabase := nil;
   FCurrSelTreeNode := nil;
   FPrevSelTreeNode := nil;
-  FTableData := TIBQuery.Create(Self);
-  FQryDataSet := nil;
-  FDefaultTransaction := nil;
-  FLastActions := nil;
-  FRefetch := false;
-  FWindowList := TStringList.Create;
+  try
+    SetLength (gWinTempPath, MAX_PATH);
+    GetTempPath(MAX_PATH,PChar(gWinTempPath));
+    // AV exception on startup
+    // creation of FWindowList moved before creation FTableData
+    FWindowList := TStringList.Create;
 
-  { Initialize the application setting defaults }
-  for lCnt := 0 to NUM_SETTINGS-1 do begin
-    gAppSettings[lCnt].Name := SETTINGS[lCnt];
-      case lCnt of
-        {Boolean Settings}
-          SYSTEM_DATA:
-            gAppSettings[lCnt].Setting := false;
-          DEPENDENCIES:
-            gAppSettings[lCnt].Setting := true;
-          USE_DEFAULT_EDITOR:
-            gAppSettings[lCnt].Setting := true;
-          SHOW_QUERY_PLAN:
-            gAppSettings[lCnt].Setting := true;
-          AUTO_COMMIT_DDL:
-            gAppSettings[lCnt].Setting := true;
-          SHOW_STATS:
-            gAppSettings[lCnt].Setting := true;
-          SHOW_LIST:
-            gAppSettings[lCnt].Setting := false;
-          SAVE_ISQL_OUTPUT:
-            gAppSettings[lCnt].Setting := false;
-          UPDATE_ON_CONNECT:
-            gAppSettings[lCnt].Setting := false;
-          UPDATE_ON_CREATE:
-            gAppSettings[lCnt].Setting := false;
-          CLEAR_INPUT:
-            gAppSettings[lCnt].Setting := true;
+    // this might raise an exception eg when gds32.dll not available
+    FTableData := TIBQuery.Create(Self);
 
-        {String Settings}
-          CHARACTER_SET:
-            gAppSettings[lCnt].Setting := 'None';
-          BLOB_DISPLAY:
-            gAppSettings[lCnt].Setting := 'Restrict';
-          BLOB_SUBTYPE:
-            gAppSettings[lCnt].Setting := 'Text';
-          ISQL_TERMINATOR:
-            gAppSettings[lCnt].Setting := ';';
+    FQryDataSet := nil;
+    FDefaultTransaction := nil;
+    FLastActions := '';
+    FRefetch := false;
 
-        {Integer Settings}
-          COMMIT_ON_EXIT:
-            gAppSettings[lCnt].Setting := 0;
-          VIEW_STYLE:
-            gAppSettings[lCnt].Setting := 3;
-          DEFAULT_DIALECT:
-            gAppSettings[lCnt].Setting := 3;
-        end;
-    end;
+    { Initialize the application setting defaults }
+    for lCnt := 0 to NUM_SETTINGS-1 do begin
+      gAppSettings[lCnt].Name := SETTINGS[lCnt];
+        case lCnt of
+          {Boolean Settings}
+            SYSTEM_DATA:
+              gAppSettings[lCnt].Setting := false;
+            DEPENDENCIES:
+              gAppSettings[lCnt].Setting := true;
+            USE_DEFAULT_EDITOR:
+              gAppSettings[lCnt].Setting := true;
+            SHOW_QUERY_PLAN:
+              gAppSettings[lCnt].Setting := true;
+            AUTO_COMMIT_DDL:
+              gAppSettings[lCnt].Setting := true;
+            SHOW_STATS:
+              gAppSettings[lCnt].Setting := true;
+            SHOW_LIST:
+              gAppSettings[lCnt].Setting := false;
+            SAVE_ISQL_OUTPUT:
+              gAppSettings[lCnt].Setting := false;
+            UPDATE_ON_CONNECT:
+              gAppSettings[lCnt].Setting := false;
+            UPDATE_ON_CREATE:
+              gAppSettings[lCnt].Setting := false;
+            CLEAR_INPUT:
+              gAppSettings[lCnt].Setting := true;
 
-  FRegistry := TRegistry.Create;
-  FRegistry.RootKey := HKEY_CURRENT_USER;
-  InitRegistry;
-  FMainWindowState._Read := false;
-  FObjectWindowState._Read := false;
-  FISQLWindowState._Read := false;
-  ReadRegistry;
-  if FMainWindowState._Read then
-    with FMainWindowState do
-    begin
-      if not (_State in [wsMaximized, wsMinimized]) then
-      begin
-        Top := _Top;
-        Left := _Left;
-        Width := _Width;
-        Height := _Height;
+          {String Settings}
+            CHARACTER_SET:
+              gAppSettings[lCnt].Setting := 'None';
+            BLOB_DISPLAY:
+              gAppSettings[lCnt].Setting := 'Restrict';
+            BLOB_SUBTYPE:
+              gAppSettings[lCnt].Setting := 'Text';
+            ISQL_TERMINATOR:
+              gAppSettings[lCnt].Setting := ';';
+
+          {Integer Settings}
+            COMMIT_ON_EXIT:
+              gAppSettings[lCnt].Setting := 0;
+            VIEW_STYLE:
+              gAppSettings[lCnt].Setting := 3;
+            DEFAULT_DIALECT:
+              gAppSettings[lCnt].Setting := 3;
+          end;
       end;
-      WindowState := _State;
-    end;
 
-  tvMain.Selected := tvMain.Items[0];
-  tvMainChange(nil,nil);
-
-  FWISQL := TdlgWisql.Create (nil);
-  if FISQLWindowState._Read then
-    with FISQLWindowState do
-    begin
-      if not (_State in [wsMaximized, wsMinimized]) then
-      begin
-        FWISQL.Top := _Top;
-        FWISQL.Left := _Left;
-        FWISQL.Width := _Width;
-        FWISQL.Height := _Height;
-      end;
-      FWISQL.WindowState := _State;
-    end;
-
-  { Get the number of items in the tool Menu }
-  FToolMenuIdx := ToolMenu.Count;
+    FPersistentInfo := TibcPersistentInfo.Create;
+    ReadRegistry;
+    tvMain.Selected := tvMain.Items[0];
+    tvMainChange(nil,nil);
+    FToolMenuIdx := ToolMenu.Count;
+  except
+    gApplShutdown := true;
+    raise;
+  end;
 end;
 
 procedure TfrmMain.FormDestroy(Sender: TObject);
 begin
-  FRegistry.Free;
+  FreeAndNil(FPersistentInfo);  
+  if Assigned(gExternalApps) then
+    gExternalApps.Free;
 end;
 
 {****************************************************************
@@ -804,21 +742,6 @@ begin
               SmallImages.GetIcon(Selected.ImageIndex, Icon);
               UpdateWindowList(FCurrSelDatabase.ObjectViewer.Caption, TObject(FCurrSelDatabase.ObjectViewer), true);
               FCurrSelDatabase.CreateObjectViewer;
-
-              if FObjectWindowState._Read then
-                with FObjectWindowState do
-                begin
-                  if not (_State in [wsMaximized, wsMinimized]) then
-                  begin
-                    FCurrSelDatabase.ObjectViewer.Top := _Top;
-                    FCurrSelDatabase.ObjectViewer.Left := _Left;
-                    FCurrSelDatabase.ObjectViewer.Width := _Width;
-                    FCurrSelDatabase.ObjectViewer.Height := _Height;
-                  end;
-                  FCurrSelDatabase.ObjectViewer.WindowState := _State;
-                  FObjectWindowState._Read := false;
-                end;
-
               FCurrSelDatabase.ObjectViewer.InitDlg(FCurrSelTreeNode.NodeType,FCurrSelTreeNode.ObjectList,
                                      Selected.Caption, FCurrSelDatabase.Database, Icon, FViewSystemData, FRefetch);
               FRefetch := false;
@@ -874,7 +797,7 @@ try
     case FCurrSelTreeNode.NodeType of
       NODE_LOGS:
       begin
-        FillActionList(LogActions);
+        FillActionList('Log');
       end;
 
       NODE_SERVERS:
@@ -889,9 +812,9 @@ try
         FCurrSelServer := TibcServerNode(tvMain.Selected.Data);
         tvMain.PopupMenu := pmServer;
         if FCurrSelServer.Server.Active then
-          FillActionList(ServerConnectedActions)
+          FillActionList('Server Connected')
         else
-          FillActionList(ServerActions);
+          FillActionList('Server');
       end;
 
       NODE_DATABASES:
@@ -911,7 +834,8 @@ try
         FCurrSelServer := TibcServerNode(tvMain.Selected.Parent.Data);
         GetBackupFiles(FCurrSelServer);
         FillObjectList(FCurrSelTreeNode);
-        lvObjects.PopupMenu := pmBackupRestore;        
+        lvObjects.PopupMenu := pmBackupRestore;
+        tvMain.PopupMenu := pmBackupRestore;       
       end;
 
       NODE_USERS:
@@ -925,18 +849,19 @@ try
       NODE_BACKUP_ALIAS:
       begin
         FCurrSelServer := TibcServerNode(tvMain.Selected.Parent.Parent.Data);
-        if FRegistry.OpenKey(Format('%s%s\Backup Files\%s',[gRegServersKey,FCurrSelServer.NodeName,FCurrSelTreeNode.NodeName]),false) then
+        // AV exception on startup
+        if FPersistentInfo.Registry.OpenKey(Format('%s%s\Backup Files\%s',[gRegServersKey,FCurrSelServer.NodeName,FCurrSelTreeNode.NodeName]),false) then
         begin
-          TibcBackupAliasNode(FCurrSelTreeNode).SourceDBServer := FRegistry.ReadString('SourceDBServer');
-          TibcBackupAliasNode(FCurrSelTreeNode).SourceDBAlias := FRegistry.ReadString('SourceDBAlias');
-          TibcBackupAliasNode(FCurrSelTreeNode).BackupFiles.Text := FRegistry.ReadString('BackupFiles');
+          TibcBackupAliasNode(FCurrSelTreeNode).SourceDBServer := FPersistentInfo.Registry.ReadString('SourceDBServer');
+          TibcBackupAliasNode(FCurrSelTreeNode).SourceDBAlias := FPersistentInfo.Registry.ReadString('SourceDBAlias');
+          TibcBackupAliasNode(FCurrSelTreeNode).BackupFiles.Text := FPersistentInfo.Registry.ReadString('BackupFiles');
 
-          if FRegistry.KeyExists ('Created') then
-            TibcBackupAliasNode(FCurrSelTreeNode).Created := FRegistry.ReadDateTime('Created');
-          if FRegistry.KeyExists ('Accessed') then
-            TibcBackupAliasNode(FCurrSelTreeNode).Created := FRegistry.ReadDateTime('Accessed');
+          if FPersistentInfo.Registry.KeyExists ('Created') then
+            TibcBackupAliasNode(FCurrSelTreeNode).Created := FPersistentInfo.Registry.ReadDateTime('Created');
+          if FPersistentInfo.Registry.KeyExists ('Accessed') then
+            TibcBackupAliasNode(FCurrSelTreeNode).Created := FPersistentInfo.Registry.ReadDateTime('Accessed');
         end;
-        FillActionList (BackupActions);
+        FillActionList ('Backup');
         tvMain.popupMenu := pmBackupRestore;
       end;
 
@@ -952,12 +877,12 @@ try
         if (Assigned(FCurrSelDatabase.Database)) and
            (FCurrSelDatabase.Database.Connected) then
         begin
-          FillActionList (DatabaseConnectedActions);
+          FillActionList ('Database Connected');
           tvMain.PopupMenu := pmDatabaseConnectedActions;
         end
         else
         begin
-          FillACtionList (DatabaseActions);
+          FillACtionList ('Database');
           tvMain.PopupMenu := pmDatabaseActions;
         end;
      end;
@@ -1040,7 +965,7 @@ begin
          Assigned(FCurrSelDatabase) and
          (not Assigned(FCurrSelDatabase.Database) or
           not (FCurrSelDatabase.Database.Connected)) then
-        DoDBConnect(FCurrSelServer,FCurrSelDatabase,true);
+        DoDBConnect(FCurrSelServer,FCurrSelDatabase,true,true);
 
     NODE_BACKUP_ALIAS:
       DatabaseRestoreExecute(self);
@@ -1094,41 +1019,42 @@ end;
 *
 *****************************************************************}
 function TfrmMain.DoDBConnect(const SelServerNode: TibcServerNode;
-  var SelDatabaseNode: TibcDatabaseNode;
-  const SilentLogin: boolean): boolean;
+  SelDatabaseNode: TibcDatabaseNode;
+  const SilentLogin: boolean; refresh:boolean): boolean;
 var
   lDatabaseNode: TTreeNode;
 begin
   Result := True;
-  if Assigned(SelServerNode) and Assigned(SelDatabaseNode) then
-  begin
-    if frmuDBConnect.DBConnect(SelDatabaseNode,SelServerNode,SilentLogin) then
-    begin
+  if Assigned(SelServerNode) and Assigned(SelDatabaseNode) then begin
+    if frmuDBConnect.DBConnect(SelDatabaseNode,SelServerNode,SilentLogin) then begin
       lDatabaseNode := tvMain.Items.GetNode(SelDatabaseNode.NodeID);
 
-      if not lDatabaseNode.HasChildren then
-      begin
-        lDatabaseNode.ImageIndex := NODE_DATABASES_CONNECTED_IMG;
-        lDatabaseNode.SelectedIndex := NODE_DATABASES_CONNECTED_IMG;
+      if refresh then begin
+        if not lDatabaseNode.HasChildren then
+        begin
+          lDatabaseNode.ImageIndex := NODE_DATABASES_CONNECTED_IMG;
+          lDatabaseNode.SelectedIndex := NODE_DATABASES_CONNECTED_IMG;
 
-        AddTreeRootNode (NODE_DOMAINS, lDatabaseNode);
-        AddTreeRootNode (NODE_TABLES, lDatabaseNode);
-        AddTreeRootNode (NODE_VIEWS, lDatabaseNode);
-        AddTreeRootNode (NODE_PROCEDURES, lDatabaseNode);
-        AddTreeRootNode (NODE_FUNCTIONS, lDatabaseNode);
-        AddTreeRootNode (NODE_GENERATORS, lDatabaseNode);
-        AddTreeRootNode (NODE_EXCEPTIONS, lDatabaseNode);
-        AddTreeRootNode (NODE_BLOB_FILTERS, lDatabaseNode);
-        AddTreeRootNode (NODE_ROLES, lDatabaseNode);
-      end;
+          AddTreeRootNode (NODE_DOMAINS, lDatabaseNode);
+          AddTreeRootNode (NODE_TABLES, lDatabaseNode);
+          AddTreeRootNode (NODE_VIEWS, lDatabaseNode);
+          AddTreeRootNode (NODE_PROCEDURES, lDatabaseNode);
+          AddTreeRootNode (NODE_FUNCTIONS, lDatabaseNode);
+          AddTreeRootNode (NODE_GENERATORS, lDatabaseNode);
+          AddTreeRootNode (NODE_EXCEPTIONS, lDatabaseNode);
+          AddTreeRootNode (NODE_BLOB_FILTERS, lDatabaseNode);
+          AddTreeRootNode (NODE_ROLES, lDatabaseNode);
+        end;
 
-      if FRegistry.OpenKey(Format('%s%s\Databases\%s',[gRegServersKey,SelServerNode.Nodename,SelDatabaseNode.Nodename]),false) then
-      begin
-        FRegistry.WriteString('Username',SelDatabaseNode.Username);
-        FRegistry.WriteString('Role',SelDatabaseNode.Role);
-        FRegistry.WriteBool('CaseSensitiveRole', SelDatabaseNode.CaseSensitiveRole);
-        FRegistry.WriteDateTime('Last Accessed', Now);
-        FRegistry.CloseKey;
+        if FPersistentInfo.Registry.OpenKey(Format('%s%s\Databases\%s',[gRegServersKey,SelServerNode.Nodename,SelDatabaseNode.Nodename]),false) then
+        begin
+          FPersistentInfo.Registry.WriteString('Username',SelDatabaseNode.Username);
+          FPersistentInfo.Registry.WriteString('Role',SelDatabaseNode.Role);
+          FPersistentInfo.Registry.WriteBool('CaseSensitiveRole', SelDatabaseNode.CaseSensitiveRole);
+          FPersistentInfo.Registry.WriteDateTime('Last Accessed', Now);
+          FPersistentInfo.Registry.WriteString('CharacterSet',SelDatabaseNode.CharacterSet);
+          FPersistentInfo.Registry.CloseKey;
+        end;
       end;
       tvMainChange(nil,nil);
 
@@ -1502,19 +1428,19 @@ begin
     TibcBackupAliasNode(lBackupAliasNode.Data).Created := Now;
     TibcBackupAliasNode(lBackupAliasNode.Data).LastAccessed := Now;
 
-    if FRegistry.OpenKey(Format('%s%s\Backup Files',[gRegServersKey,SelServerNode.Nodename]),true) then
+    if FPersistentInfo.Registry.OpenKey(Format('%s%s\Backup Files',[gRegServersKey,SelServerNode.Nodename]),true) then
     begin
-      if FRegistry.OpenKey(Format('%s%s\Backup Files\%s',[gRegServersKey,SelServerNode.Nodename,BackupAlias]),true) then
+      if FPersistentInfo.Registry.OpenKey(Format('%s%s\Backup Files\%s',[gRegServersKey,SelServerNode.Nodename,BackupAlias]),true) then
       begin
-        FRegistry.WriteString('SourceDBServer',SelServerNode.NodeName);
-        FRegistry.WriteString('SourceDBAlias',SourceDBAlias);
-        FRegistry.WriteString('BackupFiles',BackupFiles.Text);
+        FPersistentInfo.Registry.WriteString('SourceDBServer',SelServerNode.NodeName);
+        FPersistentInfo.Registry.WriteString('SourceDBAlias',SourceDBAlias);
+        FPersistentInfo.Registry.WriteString('BackupFiles',BackupFiles.Text);
 
-        if not FRegistry.KeyExists ('Created') then
-          FRegistry.WriteDateTime ('Created', TibcBackupAliasNode(lBackupAliasNode.Data).Created);
+        if not FPersistentInfo.Registry.KeyExists ('Created') then
+          FPersistentInfo.Registry.WriteDateTime ('Created', TibcBackupAliasNode(lBackupAliasNode.Data).Created);
 
-        FRegistry.WriteDateTime ('Accessed', TibcBackupAliasNode(lBackupAliasNode.Data).LastAccessed);
-        FRegistry.CloseKey;
+        FPersistentInfo.Registry.WriteDateTime ('Accessed', TibcBackupAliasNode(lBackupAliasNode.Data).LastAccessed);
+        FPersistentInfo.Registry.CloseKey;
       end;
     end;
   finally
@@ -1543,8 +1469,9 @@ end;
 * Revisions:
 *
 *****************************************************************}
+
 function TfrmMain.RegisterDatabase(const SelServerNode: TibcServerNode;
-  const DBAlias,UserName,Password,Role: string; DatabaseFiles: TStringList;
+  const DBAlias,UserName,Password,Role,CharacterSet: string; DatabaseFiles: TStringList;
   SaveAlias, CaseSensitive: boolean; var NewDatabase: TIBDatabase): boolean;
 var
   lDatabaseNode,lCurrNode: TTreeNode;
@@ -1563,6 +1490,9 @@ begin
     FCurrSelDatabase := TibcDatabaseNode(lDatabaseNode.Data);
     FCurrSelDatabase.UserName := Username;
     FCurrSelDatabase.Password := Password;
+
+    FCurrSelDatabase.CharacterSet := CharacterSet;
+
     FCurrSelDatabase.Role := Role;
     FCurrSelDatabase.CaseSensitiveRole := CaseSensitive;
     lDatabaseNode.SelectedIndex := NODE_DATABASES_DISCONNECTED_IMG;
@@ -1573,14 +1503,15 @@ begin
 
     if SaveAlias then
     begin
-      if FRegistry.OpenKey(Format('%s%s\Databases\%s',[gRegServersKey,SelServerNode.NodeName,DBAlias]),true) then
+      if FPersistentInfo.Registry.OpenKey(Format('%s%s\Databases\%s',[gRegServersKey,SelServerNode.NodeName,DBAlias]),true) then
       begin
 {TODO: Write more here too! }
-        FRegistry.WriteString('DatabaseFiles',DatabaseFiles.Text);
-        FRegistry.WriteString('Username',Username);
-        FRegistry.WriteString('Role',Role);
-        FRegistry.WriteBool('CaseSensitiveRole', CaseSensitive);
-        FRegistry.CloseKey;
+        FPersistentInfo.Registry.WriteString('DatabaseFiles',DatabaseFiles.Text);
+        FPersistentInfo.Registry.WriteString('Username',Username);
+        FPersistentInfo.Registry.WriteString('Role',Role);
+        FPersistentInfo.Registry.WriteBool('CaseSensitiveRole', CaseSensitive);
+        FPersistentInfo.Registry.WriteString('CharacterSet',CharacterSet);
+        FPersistentInfo.Registry.CloseKey;
       end;
     end;
   finally
@@ -1631,19 +1562,19 @@ begin
     tvMain.Selected := lServerNode;
     if SaveAlias then
     begin
-      if FRegistry.OpenKey(Format('%s%s',[gRegServersKey,ServerAlias]),true) then
+      if FPersistentInfo.Registry.OpenKey(Format('%s%s',[gRegServersKey,ServerAlias]),true) then
       begin
-        FRegistry.WriteString('ServerName',ServerName);
+        FPersistentInfo.Registry.WriteString('ServerName',ServerName);
         case Protocol of
-          TCP: FRegistry.WriteInteger('Protocol',0);
-          NamedPipe: FRegistry.WriteInteger('Protocol',1);
-          SPX: FRegistry.WriteInteger('Protocol',2);
-          Local: FRegistry.WriteInteger('Protocol',3);
+          TCP: FPersistentInfo.Registry.WriteInteger('Protocol',0);
+          NamedPipe: FPersistentInfo.Registry.WriteInteger('Protocol',1);
+          SPX: FPersistentInfo.Registry.WriteInteger('Protocol',2);
+          Local: FPersistentInfo.Registry.WriteInteger('Protocol',3);
         end;
-        FRegistry.WriteString('Username',Username);
-        FRegistry.WriteString('Description', Description);
-        FRegistry.WriteDateTime('Last Accessed', LastAccess);
-        FRegistry.CloseKey;
+        FPersistentInfo.Registry.WriteString('Username',Username);
+        FPersistentInfo.Registry.WriteString('Description', Description);
+        FPersistentInfo.Registry.WriteDateTime('Last Accessed', LastAccess);
+        FPersistentInfo.Registry.CloseKey;
       end;
     end;
   finally
@@ -1713,7 +1644,7 @@ var
   lDatabases,lBackupAliases,lBackupFiles,lDatabaseFiles: TStringList;
   i: integer;
   lCaseSensitive: boolean;
-  lDBUserName,lRole,lSourceDBServer,lSourceDBAlias: string;
+  lDBUserName,lRole,lSourceDBServer,lSourceDBAlias,lCharacterSet: string;
 begin
   lDatabases := nil;
   lBackupAliases := nil;
@@ -1787,47 +1718,48 @@ begin
 
           tvMain.Refresh;
           FcurrSelServer.LastAccessed := Now;
-          if FRegistry.OpenKey(Format('%s%s',[gRegServersKey,FCurrSelServer.NodeName]),false) then
+          if FPersistentInfo.Registry.OpenKey(Format('%s%s',[gRegServersKey,FCurrSelServer.NodeName]),false) then
           begin
-            FRegistry.WriteString('Username',FCurrSelServer.Username);
-            FRegistry.WriteDateTime('Last Accessed', Now);
+            FPersistentInfo.Registry.WriteString('Username',FCurrSelServer.Username);
+            FPersistentInfo.Registry.WriteDateTime('Last Accessed', Now);
 
-            if FRegistry.OpenKey(Format('%s%s\Databases',[gRegServersKey,FCurrSelServer.NodeName]),false) then
+            if FPersistentInfo.Registry.OpenKey(Format('%s%s\Databases',[gRegServersKey,FCurrSelServer.NodeName]),false) then
             begin
-              FRegistry.GetKeyNames(lDatabases);
+              FPersistentInfo.Registry.GetKeyNames(lDatabases);
               for i := 0 to lDatabases.Count - 1 do
               begin
-                if FRegistry.OpenKey(Format('%s%s\Databases\%s',[gRegServersKey,FCurrSelServer.NodeName,lDatabases[i]]),false) then
+                if FPersistentInfo.Registry.OpenKey(Format('%s%s\Databases\%s',[gRegServersKey,FCurrSelServer.NodeName,lDatabases[i]]),false) then
                 begin
-                  lDatabaseFiles.text := FRegistry.ReadString('DatabaseFiles');
-                  lDBUserName := FRegistry.ReadString('Username');
-                  lRole := FRegistry.ReadString('Role');
+                  lDatabaseFiles.text := FPersistentInfo.Registry.ReadString('DatabaseFiles');
+                  lDBUserName := FPersistentInfo.Registry.ReadString('Username');
+                  lRole := FPersistentInfo.Registry.ReadString('Role');
+                  lCharacterSet := FPersistentInfo.Registry.ReadString('CharacterSet');
                   try
-                    lCaseSensitive := FRegistry.ReadBool('CaseSensitiveRole');
+                    lCaseSensitive := FPersistentInfo.Registry.ReadBool('CaseSensitiveRole');
                   except on E: Exception do
                     lCaseSensitive := false;
                   end;
                   RegisterDatabase(FCurrSelServer,lDatabases[i],lDBUserName,'',
-                    lRole,lDatabaseFiles,true, lCaseSensitive, FNILLDATABASE);
+                    lRole, lCharacterSet, lDatabaseFiles,true, lCaseSensitive, FNILLDATABASE);
                 end;
               end;
             end;
 
-            if FRegistry.OpenKey(Format('%s%s\Backup Files',[gRegServersKey,FCurrSelServer.NodeName]),false) then
+            if FPersistentInfo.Registry.OpenKey(Format('%s%s\Backup Files',[gRegServersKey,FCurrSelServer.NodeName]),false) then
             begin
-              FRegistry.GetKeyNames(lBackupAliases);
+              FPersistentInfo.Registry.GetKeyNames(lBackupAliases);
               for i := 0 to (lBackupAliases.Count - 1) do
               begin
-                if FRegistry.OpenKey(Format('%s%s\Backup Files\%s',[gRegServersKey,FCurrSelServer.NodeName,lBackupAliases[i]]),false) then
+                if FPersistentInfo.Registry.OpenKey(Format('%s%s\Backup Files\%s',[gRegServersKey,FCurrSelServer.NodeName,lBackupAliases[i]]),false) then
                 begin
-                  lSourceDBServer := FRegistry.ReadString('SourceDBServer');
-                  lSourceDBAlias := FRegistry.ReadString('SourceDBAlias');
-                  lBackupFiles.Text := FRegistry.ReadString('BackupFiles');
+                  lSourceDBServer := FPersistentInfo.Registry.ReadString('SourceDBServer');
+                  lSourceDBAlias := FPersistentInfo.Registry.ReadString('SourceDBAlias');
+                  lBackupFiles.Text := FPersistentInfo.Registry.ReadString('BackupFiles');
                   RegisterBackupFile(FCurrSelServer,lSourceDBAlias,lBackupAliases[i],lBackupFiles)
                 end;
               end;
             end;
-            FRegistry.CloseKey;
+            FPersistentInfo.Registry.CloseKey;
           end;
         finally
           lDatabases.Free;
@@ -1882,7 +1814,7 @@ begin
      lvObjects.Tag := OBJECTS;
   end;
 
-  FLastActions := nil;
+  FLastActions := '';
   lvObjects.SmallImages := imgTreeView;
   lvObjects.StateImages := imgTreeView;
   lvObjects.LargeImages := imgLargeView;
@@ -1991,57 +1923,6 @@ end;
 
 {****************************************************************
 *
-*  I n i t R e g i s t r y ( )
-*
-****************************************************************
-*  Author: The Client Server Factory Inc.
-*  Date:   March 1, 1999
-*
-*  Input: None
-*
-*  Return: None
-*
-*  Description: Initializes the registry with default values
-*
-*****************************************************************
-* Revisions:
-*
-*****************************************************************}
-procedure TfrmMain.InitRegistry;
-var
-  lCnt: integer;
-
-begin
-  with FRegistry do begin
-    OpenKey('Software',true);
-    OpenKey('Borland',true);
-    OpenKey('InterBase',true);
-    OpenKey('IBConsole',true);
-    CreateKey('Servers');
-    gRegServersKey := Format('\%s\Servers\',[CurrentPath]);
-    CreateKey('Settings');
-    gRegSettingsKey := Format('\%s\Settings',[CurrentPath]);
-    gRegToolsKey := Format('%s\Tools',[gRegSettingsKey]);
-  end;
-
-  with FRegistry do begin
-    OpenKey(gRegSettingsKey,false);
-    for lCnt := 0 to NUM_SETTINGS-1 do begin
-      if not ValueExists (gAppSettings[lCnt].Name) then begin
-        case (VarType(gAppSettings[lCnt].Setting) and varTypeMask) of
-          varSmallint: WriteInteger (gAppSettings[lCnt].Name, gAppSettings[lCnt].Setting);
-          varInteger: WriteInteger (gAppSettings[lCnt].Name, gAppSettings[lCnt].Setting);
-          varBoolean: WriteBool (gAppSettings[lCnt].Name, gAppSettings[lCnt].Setting);
-          varString: WriteString (gAppSettings[lCnt].Name, gAppSettings[lCnt].Setting);
-        end;
-      end;
-    end;
-    CloseKey;
-  end;
-end;
-
-{****************************************************************
-*
 *  I n i t T r e e V i e w ( )
 *
 ****************************************************************
@@ -2089,7 +1970,7 @@ end;
 *****************************************************************}
 procedure TfrmMain.ReadRegistry;
 var
-  lServerName,lServerAlias,lServerUserName, lDescription: string;
+  lServerName,lCharacterSet,lServerAlias,lServerUserName, lDescription: string;
   lLastAccessed: TDateTime;
   lProtocol: TProtocol;
   lServers: TStringList;
@@ -2102,20 +1983,9 @@ begin
   lServers := TStringList.Create;
   try
     InitTreeView;
-    with FRegistry do begin
+    with FPersistentInfo.Registry do begin
       { Read Option Settings }
-      OpenKey(gRegSettingsKey,false);
-      for i:= 0 to NUM_SETTINGS-1 do begin
-        case i of
-          SYSTEM_DATA..CLEAR_INPUT:
-              gAppSettings[i].Setting := ReadBool(gAppSettings[i].Name);
-          CHARACTER_SET..ISQL_TERMINATOR:
-              gAppSettings[i].Setting := ReadString(gAppSettings[i].Name);
-          COMMIT_ON_EXIT..DEFAULT_DIALECT:
-              gAppSettings[i].Setting := ReadInteger(gAppSettings[i].Name);
-        end;
-      end;
-
+      FPersistentInfo.GetSettings(gAppSettings);
       lTempInt := gAppSettings[VIEW_STYLE].Setting;;
       case lTempInt of
         0: ViewIcon.OnExecute(self);
@@ -2124,20 +1994,6 @@ begin
         3: ViewReport.OnExecute(self);
       end;
       FViewSystemData := gAppSettings[SYSTEM_DATA].Setting;
-
-      { Get the window state }
-      if ValueExists('MainState') then
-        ReadBinaryData ('MainState', FMainWindowState, Sizeof(FMainwindowState));
-
-      if ValueExists('ObjState') then
-        ReadBinaryData ('ObjState', FObjectWindowState, Sizeof(FMainwindowState));
-
-      if ValueExists('SQLState') then
-        ReadBinaryData ('SQLState', FISQLWindowState, Sizeof(FMainwindowState));
-
-      CloseKey; { end read options settings}
-
-      { Read the external tools }
 
       gExternalApps := TStringList.Create;
       if OpenKey (gRegToolsKey, false) and ValueExists('Count') then
@@ -2154,6 +2010,7 @@ begin
         for i := 0 to lServers.Count - 1 do begin
           lServerName := '';
           lServerUserName := '';
+          lCharacterSet := '';
           lDescription := '';
           lLastAccessed := Now;
           lTempInt := -1;
@@ -2177,7 +2034,7 @@ begin
                 lServerUserName := ReadString('UserName');
                 raise Exception.Create('Failed to get data for ''ServerName''.');
               end;
-
+              lCharacterSet := ReadString('CharacterSet');
               lServerUserName := ReadString('UserName');
               if lServerUserName = '' then
                 raise Exception.Create('Failed to get data for ''UserName''.');
@@ -2223,7 +2080,7 @@ begin
       end;
     end;
     finally
-      FRegistry.CloseKey;
+      FPersistentInfo.Registry.CloseKey;
       lServers.Free;
       Application.ProcessMessages;
     end;
@@ -2327,14 +2184,17 @@ var
 begin
   result := false;
   lAliases := TStringList.Create;
-  FRegistry.OpenKey(gRegServersKey,false);
-  if FRegistry.OpenKey(Format('%s%s\Databases',[gRegServersKey,FCurrSelServer.ServerName]),false) then
-    FRegistry.GetKeyNames(lAliases);
-  FRegistry.CloseKey;
+  try
+    FPersistentInfo.Registry.OpenKey(gRegServersKey,false);
+    if FPersistentInfo.Registry.OpenKey(Format('%s%s\Databases',[gRegServersKey,FCurrSelServer.ServerName]),false) then
+      FPersistentInfo.Registry.GetKeyNames(lAliases);
+    FPersistentInfo.Registry.CloseKey;
 
-  if lAliases.IndexOf(AliasName) <> -1 then
-    result := true;
-  lAliases.Free;
+    if lAliases.IndexOf(AliasName) <> -1 then
+      result := true;
+  finally
+    lAliases.Free;
+  end;
 end;
 
 function TfrmMain.IsDBRegistered(const DBFile : String; var ExistingDBAlias : String) : Boolean;
@@ -2344,26 +2204,21 @@ var
   i              : Integer;
 begin
   Result         := False;
-  lDatabaseFiles := Nil;
-  lDatabases     := Nil;
-
+  lDatabaseFiles := TStringList.Create;
+  lDatabases := TStringList.Create;
   try
-    lDatabaseFiles := TStringList.Create;
-    lDatabases := TStringList.Create;
-
-    if FRegistry.OpenKey(gRegServersKey,false) then
+    if FPersistentInfo.Registry.OpenKey(gRegServersKey,false) then
     begin
-      if FRegistry.OpenKey(Format('%s%s\Databases',[gRegServersKey,FCurrSelServer.ServerName]),false) then
+      if FPersistentInfo.Registry.OpenKey(Format('%s%s\Databases',[gRegServersKey,FCurrSelServer.ServerName]),false) then
       begin
-        FRegistry.GetKeyNames(lDatabases);
+        FPersistentInfo.Registry.GetKeyNames(lDatabases);
         i := 0;
-
         while (i < lDatabases.Count) do
         begin
-          if FRegistry.OpenKey(Format('%s%s\Databases\%s',[gRegServersKey,FCurrSelServer.ServerName,
+          if FPersistentInfo.Registry.OpenKey(Format('%s%s\Databases\%s',[gRegServersKey,FCurrSelServer.ServerName,
             lDatabases[i]]),false) then
           begin
-            lDatabaseFiles.Text := FRegistry.ReadString('DatabaseFiles');
+            lDatabaseFiles.Text := FPersistentInfo.Registry.ReadString('DatabaseFiles');
             if lDatabaseFiles.Strings[0] = DBFile then
             begin
               ExistingDBAlias := lDatabases.Strings[i];
@@ -2378,7 +2233,7 @@ begin
   finally
     lDatabaseFiles.Free;
     lDatabases.Free;
-    FRegistry.CloseKey;
+    FPersistentInfo.Registry.CloseKey;
   end;
   if result then
     if MessageDlg(Format('This database is already registered with the following alias: %s.%s'+
@@ -2394,9 +2249,9 @@ begin
   if MessageDlg(Format('Are you sure that you want to un-register %s?', [Node]),
       mtConfirmation, [mbYes, mbNo], 0) = mrYes then
   begin
-    FRegistry.DeleteKey(Format('%s%s\Databases',[gRegServersKey,Node]));
-    FRegistry.DeleteKey(Format('%s%s',[gRegServersKey, Node]));
-    FRegistry.CloseKey;
+    FPersistentInfo.Registry.DeleteKey(Format('%s%s\Databases',[gRegServersKey,Node]));
+    FPersistentInfo.Registry.DeleteKey(Format('%s%s',[gRegServersKey, Node]));
+    FPersistentInfo.Registry.CloseKey;
     result := true
   end
   else
@@ -2515,7 +2370,8 @@ end;
 
 procedure TfrmMain.DatabaseRegisterExecute(Sender: TObject);
 var
-  lDBAlias,lUserName,lPassword,lRole: string;
+
+  lDBAlias,lUserName,lPassword,lRole,lCharacterSet: string;
   lExistingAlias : String;
   lDatabaseFiles : TStringList;
   lSaveAlias, lCaseSensitive  : boolean;
@@ -2527,33 +2383,35 @@ begin
   lDatabaseFiles := TStringList.Create;
   try
     tvMain.Items.BeginUpdate;
-    if frmuDBRegister.RegisterDB(lDBAlias,lUserName,lPassword,lRole,
+  
+
+    if frmuDBRegister.RegisterDB(lDBAlias,lUserName,lPassword,lRole,lCharacterSet,
                                  lDatabaseFiles,FCurrSelServer,
                                  lSaveAlias, lCaseSensitive) then
     begin
       lExistingAlias := '';
-      if not FRegistry.KeyExists(Format('%s%s\Databases\%s',[gRegServersKey,FCurrSelServer.Nodename,lDBAlias])) then
+      if not FPersistentInfo.Registry.KeyExists(Format('%s%s\Databases\%s',[gRegServersKey,FCurrSelServer.Nodename,lDBAlias])) then
       begin
         if not IsDBRegistered(lDatabaseFiles.Strings[0], lExistingAlias) then
         begin
-          if FRegistry.OpenKey(Format('%s%s\Databases',[gRegServersKey,FCurrSelServer.Nodename,lDBAlias]),true) then
+          if FPersistentInfo.Registry.OpenKey(Format('%s%s\Databases',[gRegServersKey,FCurrSelServer.Nodename,lDBAlias]),true) then
           begin
-            if FRegistry.OpenKey(Format('%s%s\Databases\%s',[gRegServersKey,FCurrSelServer.Nodename,lDBAlias]),true) then
+            if FPersistentInfo.Registry.OpenKey(Format('%s%s\Databases\%s',[gRegServersKey,FCurrSelServer.Nodename,lDBAlias]),true) then
             begin
-              FRegistry.WriteString('DatabaseFiles',lDatabaseFiles.Text);
-              RegisterDatabase(FCurrSelServer,lDBAlias,lUserName,lPassword,lRole,
+              FPersistentInfo.Registry.WriteString('DatabaseFiles',lDatabaseFiles.Text);
+              RegisterDatabase(FCurrSelServer,lDBAlias,lUserName,lPassword,lRole,lCharacterSet,
                 lDatabaseFiles,lSaveAlias, lCaseSensitive, FNILLDATABASE);
             end;
-            FRegistry.CloseKey;
+            FPersistentInfo.Registry.CloseKey;
           end;
 
           if (lUserName <> '') and (lPassword <> '') then
           begin
-            if not DoDBConnect(FCurrSelServer,FCurrSelDatabase,true) then
+            if not DoDBConnect(FCurrSelServer,FCurrSelDatabase,true,true) then
             begin
-              FRegistry.OpenKey(Format('%s%s\Databases',[gRegServersKey,FCurrSelServer.Nodename]),true);
-              FRegistry.DeleteKey(FCurrSelDatabase.NodeName);
-              FRegistry.CloseKey;
+              FPersistentInfo.Registry.OpenKey(Format('%s%s\Databases',[gRegServersKey,FCurrSelServer.Nodename]),true);
+              FPersistentInfo.Registry.DeleteKey(FCurrSelDatabase.NodeName);
+              FPersistentInfo.Registry.CloseKey;
               DeleteNode(tvMain.Items.GetNode(FCurrSelDatabase.NodeID),false);
               FCurrSelDatabase := nil;
               tvMainChange(nil,nil);
@@ -2584,9 +2442,9 @@ begin
           DisplayMsg (ERR_DB_DISCONNECT, 'Database registration not removed.');
           exit;
         end;
-        FRegistry.OpenKey(Format('%s%s\Databases',[gRegServersKey,FCurrSelServer.Nodename]),true);
-        FRegistry.DeleteKey(FCurrSelDatabase.NodeName);
-        FRegistry.CloseKey;
+        FPersistentInfo.Registry.OpenKey(Format('%s%s\Databases',[gRegServersKey,FCurrSelServer.Nodename]),true);
+        FPersistentInfo.Registry.DeleteKey(FCurrSelDatabase.NodeName);
+        FPersistentInfo.Registry.CloseKey;
         DeleteNode(tvMain.Items.GetNode(FCurrSelDatabase.NodeID),false);
         FCurrSelDatabase := nil;
         tvMainChange(nil,nil);
@@ -2599,7 +2457,7 @@ procedure TfrmMain.DatabaseConnectExecute(Sender: TObject);
 begin
   if (Assigned(FCurrSelServer)) and (Assigned(FCurrSelDatabase))
     and (not FCurrSelDatabase.Database.Connected) then
-    DoDBConnect(FCurrSelServer,FCurrSelDatabase,true);
+    DoDBConnect(FCurrSelServer,FCurrSelDatabase,true,true);
 end;
 
 procedure TfrmMain.DatabaseConnectAsExecute(Sender: TObject);
@@ -2607,7 +2465,7 @@ begin
   if Assigned(FCurrSelServer) and Assigned(FCurrSelDatabase) then
   begin
     if not FCurrSelDatabase.Database.Connected then
-      DoDBConnect(FCurrSelServer,FCurrSelDatabase,false);
+      DoDBConnect(FCurrSelServer,FCurrSelDatabase,false,true);
   end;
 end;
 
@@ -2722,27 +2580,18 @@ var
   lCnt: integer;
   str: string;
 begin
-  with FWisql do
-  begin
-    if CheckTransactionStatus (true) then
-    begin
-
+  with TdlgWisql.Create(Self) do begin
+    New_connection:=False;
+    if CheckTransactionStatus (true) then begin
       if Assigned(FCurrSelDatabase) and
          Assigned(FCurrSelDatabase.Database) and
          Assigned(FCurrSelDatabase.Database.Handle) and
-         (FCurrSelDatabase.Database.Connected) then
-      begin
-        Database := FCurrSelDatabase.Database;
-        OnDropDatabase := EventDatabaseDrop;
-        OnCreateObject := EventObjectRefresh;
-        OnDropObject := EventObjectRefresh;
-      end
-      else
+         (FCurrSelDatabase.Database.Connected) then begin
+        Connect1Click(Sender);
+      end else
         Database := nil;
-
       ServerList.Clear;
-      for lCnt := 1 to TibcServerNode(tvMain.Items[0].Data).ObjectList.Count - 1 do
-      begin
+      for lCnt := 1 to TibcServerNode(tvMain.Items[0].Data).ObjectList.Count - 1 do begin
         str := TibcServerNode(tvMain.Items[0].Data).ObjectList.Strings[lCnt];
         ServerList.Append(GetNextField(Str, DEL));
       end;
@@ -2751,8 +2600,7 @@ begin
       else
         ServerIndex := -1;
 
-      if Assigned (FCurrSelServer) and (FCurrSelServer.server.Active) then
-      begin
+      if Assigned (FCurrSelServer) and (FCurrSelServer.server.Active) then begin
         OnConnectDatabase := EventDatabaseConnect;
         OnCreateDatabase := EventDatabaseCreate;
       end;
@@ -2867,11 +2715,12 @@ begin
     try
       if frmuDBCreate.CreateDB(DBAlias,DatabaseFiles,FCurrSelServer) = SUCCESS then
       begin
-        RegisterDatabase(FCurrSelServer,DBAlias,'','','',DatabaseFiles,
+
+        RegisterDatabase(FCurrSelServer,DBAlias,'','','','',DatabaseFiles,
           True, false, FNILLDATABASE);
         if (Assigned(FCurrSelServer)) and (Assigned(FCurrSelDatabase))
           and (not FCurrSelDatabase.Database.Connected) then
-          DoDBConnect(FCurrSelServer,FCurrSelDatabase,true);
+          DoDBConnect(FCurrSelServer,FCurrSelDatabase,true,true);
       end;
     finally
       DatabaseFiles.Free;
@@ -2909,9 +2758,9 @@ begin
     // remove from treeview and un-register from the windows registry
     if (Assigned(FCurrSelServer)) and (Assigned(FCurrSelDatabase)) then
     begin
-      FRegistry.OpenKey(Format('%s%s\Databases',[gRegServersKey,FCurrSelServer.Nodename]),true);
-      FRegistry.DeleteKey(FCurrSelDatabase.NodeName);
-      FRegistry.CloseKey;
+      FPersistentInfo.Registry.OpenKey(Format('%s%s\Databases',[gRegServersKey,FCurrSelServer.Nodename]),true);
+      FPersistentInfo.Registry.DeleteKey(FCurrSelDatabase.NodeName);
+      FPersistentInfo.Registry.CloseKey;
       DeleteNode(tvMain.Items.GetNode(FCurrSelDatabase.NodeID),false);
       tvMainChange(nil,nil);
       GetDatabases(FCurrSelServer);
@@ -2946,22 +2795,18 @@ var
 
 begin
   if Assigned(FCurrSelServer) and Assigned(FCurrSelTreeNode) then
-  begin
     if frmuDBRestore.DoDBRestore(FCurrSelServer, FCurrSelTreeNode) = SUCCESS then
-    begin
       if FCurrSelTreeNode is TibcBackupAliasNode then
       begin
-      bckupAlias := TibcBackupAliasNode(FCurrSelTreeNode);
-      if FRegistry.OpenKey(Format('%s%s\Backup Files\%s',[gRegServersKey, FCurrSelServer.NodeName,
-        FCurrSelTreeNode.Nodename]), false) then
-      begin
-        FRegistry.WriteDateTime ('Accessed', Now);
-        FRegistry.WriteString('SourceDBAlias', bckupAlias.SourceDBAlias);
-        FRegistry.WriteString('SourceDBServer', bckupAlias.SourceDBServer);
+        bckupAlias := TibcBackupAliasNode(FCurrSelTreeNode);
+        if FPersistentInfo.Registry.OpenKey(Format('%s%s\Backup Files\%s',[gRegServersKey, FCurrSelServer.NodeName,
+          FCurrSelTreeNode.Nodename]), false) then
+        begin
+          FPersistentInfo.Registry.WriteDateTime ('Accessed', Now);
+          FPersistentInfo.Registry.WriteString('SourceDBAlias', bckupAlias.SourceDBAlias);
+          FPersistentInfo.Registry.WriteString('SourceDBServer', bckupAlias.SourceDBServer);
+        end;
       end;
-    end;
-  end;
-end;
 end;
 
 procedure TfrmMain.HelpAboutExecute(Sender: TObject);
@@ -3082,7 +2927,7 @@ begin
     lvObjects.Items.BeginUpdate;
     if frmuServerRegister.RegisterServer(lServerName,lServerAlias,lUserName,lPassword, lDescription,lProtocol,REGISTER_SERVER,lSaveAlias) = SUCCESS then
     begin
-      if not FRegistry.KeyExists(Format('%s%s',[gRegServersKey,lServerName])) then
+      if not FPersistentInfo.Registry.KeyExists(Format('%s%s',[gRegServersKey,lServerName])) then
       begin
         if RegisterServer(lServerName,lServerAlias,lUserName,lPassword,lDescription,lProtocol,lSaveAlias, Now) then
         begin
@@ -3094,9 +2939,9 @@ begin
             except
               on E: Exception do
               begin
-                FRegistry.DeleteKey(Format('%s%s\Databases',[gRegServersKey,FCurrSelServer.NodeName]));
-                FRegistry.DeleteKey(Format('%s%s',[gRegServersKey, FCurrSelServer.NodeName]));
-                FRegistry.CloseKey;
+                FPersistentInfo.Registry.DeleteKey(Format('%s%s\Databases',[gRegServersKey,FCurrSelServer.NodeName]));
+                FPersistentInfo.Registry.DeleteKey(Format('%s%s',[gRegServersKey, FCurrSelServer.NodeName]));
+                FPersistentInfo.Registry.CloseKey;
                 DeleteNode(tvMain.Items.GetNode(FCurrSelServer.NodeID),false);
                 FCurrSelServer := nil;
                 tvMainChange(nil,nil);
@@ -3197,16 +3042,16 @@ begin
       if frmuDBBackup.DoDBBackup(lSourceDBAlias, lBackupAlias,
         lBackupFiles, FCurrSelServer,FCurrSelDatabase) = SUCCESS then
       begin
-        if not FRegistry.KeyExists(Format('%s%s\Backup Files\%s',[gRegServersKey,FCurrSelServer.Nodename,lBackupAlias])) then
+        if not FPersistentInfo.Registry.KeyExists(Format('%s%s\Backup Files\%s',[gRegServersKey,FCurrSelServer.Nodename,lBackupAlias])) then
         begin
           RegisterBackupFile(FCurrSelServer,lSourceDBAlias,lBackupAlias, lBackupFiles);
         end
         else
         begin
-          if FRegistry.OpenKey(Format('%s%s\Backup Files\%s',[gRegServersKey,FCurrSelServer.Nodename,lBackupAlias]),false) then
+          if FPersistentInfo.Registry.OpenKey(Format('%s%s\Backup Files\%s',[gRegServersKey,FCurrSelServer.Nodename,lBackupAlias]),false) then
           begin
-            FRegistry.WriteString('BackupFiles',lBackupFiles.Text);
-            FRegistry.CloseKey;
+            FPersistentInfo.Registry.WriteString('BackupFiles',lBackupFiles.Text);
+            FPersistentInfo.Registry.CloseKey;
           end;
         end;
       end;
@@ -3261,7 +3106,7 @@ begin
   (Sender as TAction).Checked := (lvObjects.ViewStyle = vsSmallIcon);
 end;
 
-procedure TfrmMain.FillActionList(const ActionList: TActionList);
+procedure TfrmMain.FillActionList(const Action: String);
 var
   lCnt: Integer;
   ListItem: TListItem;
@@ -3269,9 +3114,9 @@ var
 begin
   lvObjects.Tag := ACTIONS;
 
-  if FLastActions <> ActionList then
+  if FLastActions <> Action then
   begin
-    FLastActions := ActionList;
+    FLastActions := Action;
     lvObjects.Items.BeginUpdate;
     lvObjects.Items.Clear;
 
@@ -3290,22 +3135,25 @@ begin
     lvObjects.SmallImages := nil;
     lvObjects.StateImages := nil;
     lvObjects.LargeImages := nil;
-    with ActionList do
+    with actMain do
     begin
-      for lCnt := 0 to ActionCount-1 do
+      for lCnt := 0 to ActionCount - 1 do
       begin
         with Actions[lCnt] as TAction do
         begin
-          if Tag <> 1 then
+          if Category = Action then
           begin
-            if (Tag = SYSDBA_ONLY) and
-               (UpperCase(FCurrSelServer.UserName) <> 'SYSDBA') then
-              continue;
-            ListItem := lvObjects.Items.Add;
-            ListItem.Caption := StripMenuChars(Caption);
-//            ListItem.ImageIndex := ImageIndex;
-            ListItem.SubItems.Add (Hint);
-            ListItem.Data := TAction(Actions[lCnt]);
+            if Tag <> 1 then
+            begin
+              if (Tag = SYSDBA_ONLY) and
+                 (UpperCase(FCurrSelServer.UserName) <> 'SYSDBA') then
+                continue;
+              ListItem := lvObjects.Items.Add;
+              ListItem.Caption := StripMenuChars(Caption);
+//              ListItem.ImageIndex := ImageIndex;
+              ListItem.SubItems.Add (Hint);
+              ListItem.Data := TAction(Actions[lCnt]);
+            end;
           end;
         end;
       end;
@@ -3370,9 +3218,9 @@ begin
   try
     if (Assigned(FCurrSelServer)) and (Assigned(FCurrSelDatabase)) then
     begin
-      FRegistry.OpenKey(Format('%s%s\Databases',[gRegServersKey,FCurrSelServer.Nodename]),true);
-      FRegistry.DeleteKey(FCurrSelDatabase.NodeName);
-      FRegistry.CloseKey;
+      FPersistentInfo.Registry.OpenKey(Format('%s%s\Databases',[gRegServersKey,FCurrSelServer.Nodename]),true);
+      FPersistentInfo.Registry.DeleteKey(FCurrSelDatabase.NodeName);
+      FPersistentInfo.Registry.CloseKey;
       DeleteNode(tvMain.Items.GetNode(FCurrSelDatabase.NodeID),false);
       tvMainChange(nil,nil);
       GetDatabases(FCurrSelServer);
@@ -3391,7 +3239,8 @@ var
   alias,
   username,
   password,
-  role:  String;
+  role,
+  CharacterSet:  String;
   lCnt: integer;
 begin
   if Assigned(FCurrSelServer) and (FCurrSelServer.Server.Active) then
@@ -3416,15 +3265,19 @@ begin
       if ExtractFilePath(Database.DatabaseName) = '' then
          Database.DatabaseName := ExtractFilePath(Application.ExeName)+Database.Databasename;
 
-    RegisterDatabase (FCurrSelServer, alias, username, password, role, dbName,
+    RegisterDatabase (FCurrSelServer, alias, username, password, role, CharacterSet, dbName,
       true, false, Database);
+
     dbName.Free;
     GetDatabases(FCurrSelServer);
     FillObjectList(FCurrSelTreeNode);
-    DoDBConnect(FCurrSelServer, FCurrSelDatabase, true);
-    FWisql.OnCreateObject := EventObjectRefresh;
+    DoDBConnect(FCurrSelServer, FCurrSelDatabase, true, true);
+
+
+{    FWisql.OnCreateObject := EventObjectRefresh;
     FWisql.OnDropObject := EventObjectRefresh;
-    FWisql.OnDropDatabase := EventDatabaseDrop;
+    FWisql.OnDropDatabase := EventDatabaseDrop;} //LEADER
+
   end;
 end;
 
@@ -3456,7 +3309,7 @@ begin
     GetDBObjects (FCurrSelDatabase, FCurrSelTreeNode, ObjType);
   FillObjectList (FCurrSelTreeNode);
   FRefetch := true;
-  
+
   if Assigned (FCurrSelDatabase.ObjectViewer) then
     FCurrSelDatabase.ObjectViewer.Refetch;
 end;
@@ -3466,7 +3319,8 @@ begin
   if Assigned (FCurrSelTreeNode) and (FCurrSelTreeNode.NodeType = NODE_DATABASE) then
   begin
     if Assigned (FCurrSelServer) and Assigned (FCurrSelServer.server) then
-      (Sender as TAction).Enabled := FCurrSelServer.Server.Active
+      (Sender as TAction).Enabled := FCurrSelServer.Server.Active and
+         (not FCurrSelDatabase.Database.Connected)
     else
       (Sender as TAction).Enabled := false;
     end
@@ -3693,9 +3547,9 @@ begin
     if MessageDlg(Format('Are you sure that you want to remove "%s" from the alias list?',
       [AnsiUppercase(FCurrSelTreeNode.NodeName)]), mtConfirmation, [mbYes, mbNo], 0) = mrYes then
     begin
-      FRegistry.OpenKey(Format('%s%s\Backup Files',[gRegServersKey,FCurrSelServer.Nodename]),true);
-      FRegistry.DeleteKey(FCurrSelTreeNode.NodeName);
-      FRegistry.CloseKey;
+      FPersistentInfo.Registry.OpenKey(Format('%s%s\Backup Files',[gRegServersKey,FCurrSelServer.Nodename]),true);
+      FPersistentInfo.Registry.DeleteKey(FCurrSelTreeNode.NodeName);
+      FPersistentInfo.Registry.CloseKey;
       DeleteNode(tvMain.Items.GetNode(FCurrSelTreeNode.NodeID),false);
       tvMainChange(nil,nil);
     end;
@@ -3958,10 +3812,14 @@ begin
   try
     result := true;
     DatabaseConnectAsExecute (Sender);
-    FWisql.Database := FCurrSelDatabase.Database;
-    FWisql.OnCreateObject := EventObjectRefresh;
-    FWisql.OnDropObject := EventObjectRefresh;
-    FWisql.OnDropDatabase := EventDatabaseDrop;
+    with Sender as TdlgWisql do
+    begin
+      Database := FCurrSelDatabase.Database;
+      OnCreateObject := EventObjectRefresh;
+      OnDropObject := EventObjectRefresh;
+      OnDropDatabase := EventDatabaseDrop;
+      Caption := 'Interactive SQL - ' + ExtractFileName(Database.DatabaseName);
+    end;
   except
     result := false;
   end;
@@ -3972,12 +3830,16 @@ begin
   try
     result := true;
     DatabaseCreateExecute (Sender);
-    if Assigned (FCurrSelDatabase) then
+    if Assigned(FCurrSelDatabase) then
     begin
-      FWisql.Database := FCurrSelDatabase.Database;
-      FWisql.OnCreateObject := EventObjectRefresh;
-      FWisql.OnDropObject := EventObjectRefresh;
-      FWisql.OnDropDatabase := EventDatabaseDrop;
+      with Sender as TdlgWisql do
+      begin
+        Database := FCurrSelDatabase.Database;
+        OnCreateObject := EventObjectRefresh;
+        OnDropObject := EventObjectRefresh;
+        OnDropDatabase := EventDatabaseDrop;
+        Caption := 'Interactive SQL - ' + ExtractFileName(Database.DatabaseName);
+      end;
     end
     else
       result := false;
@@ -4009,12 +3871,13 @@ var
 begin
   if Remove then
   begin
-    idx := FWindowList.IndexOf(Caption);
+    idx := FWindowList.IndexOfObject(Window);
     if idx <> -1 then
-      FWindowList.Delete (idx);
+      FWindowList.Delete(idx);
   end
   else
-    FWindowList.AddObject (Caption, Window);
+    if FWindowList.IndexOfObject(Window) = -1 then
+      FWindowList.AddObject(Caption, Window);
 end;
 
 procedure TfrmMain.Window2Click(Sender: TObject);
@@ -4024,7 +3887,13 @@ end;
 
 procedure TfrmMain.FormShow(Sender: TObject);
 begin
-  UpdateWindowList(Caption, TObject(Self));
+  if not gApplShutdown then
+  begin
+    FPersistentInfo.GetFormSettings(Self, 'MainState');
+    UpdateWindowList(Caption, TObject(Self))
+  end
+  else
+    Close;
 end;
 
 procedure TfrmMain.lvObjectsContextPopup(Sender: TObject; MousePos: TPoint;
@@ -4171,6 +4040,40 @@ begin
   if Assigned (FCurrSelTreeNode) then
     FCurrSeltreeNode.ObjectList.Clear;
   tvMainChange(nil, nil);
+end;
+
+procedure TfrmMain.ToolsSQLExecute1(Sender: TObject);
+var
+  lCnt: integer;
+  str: string;
+begin
+  with TdlgWisql.Create(Self) do begin
+    new_connection:=False;
+    if CheckTransactionStatus (true) then begin
+      if Assigned(FCurrSelDatabase) and
+         Assigned(FCurrSelDatabase.Database) and
+         Assigned(FCurrSelDatabase.Database.Handle) and
+         (FCurrSelDatabase.Database.Connected) then begin
+         Newconnection1Click(Sender);
+      end else
+        Database := nil;
+      ServerList.Clear;
+      for lCnt := 1 to TibcServerNode(tvMain.Items[0].Data).ObjectList.Count - 1 do begin
+        str := TibcServerNode(tvMain.Items[0].Data).ObjectList.Strings[lCnt];
+        ServerList.Append(GetNextField(Str, DEL));
+      end;
+      if Assigned(FCurrSelServer) and (FCurrSelServer.Server.Active) then
+        ServerIndex := ServerList.IndexOf(FCurrSelServer.NodeName)
+      else
+        ServerIndex := -1;
+
+      if Assigned (FCurrSelServer) and (FCurrSelServer.server.Active) then begin
+        OnConnectDatabase := EventDatabaseConnect;
+        OnCreateDatabase := EventDatabaseCreate;
+      end;
+      ShowDialog;
+    end;
+  end;
 end;
 
 end.

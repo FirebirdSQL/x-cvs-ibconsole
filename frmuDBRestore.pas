@@ -14,7 +14,7 @@
  * Portions created by Inprise Corporation are Copyright (C) Inprise
  * Corporation. All Rights Reserved.
  * 
- * Contributor(s): ______________________________________.
+ * Contributor(s): Krzysztof Golko.
 }
 
 {****************************************************************
@@ -99,8 +99,8 @@ function DoDBRestore(const SourceServerNode: TibcServerNode;
 
 implementation
 
-uses zluGlobal,frmuServerRegister,IBServices,frmuMessage,
-  frmuMain, zluUtility, dmuMain, zluContextHelp, Registry, IBErrorCodes;
+uses zluGlobal, zluPersistent, frmuServerRegister,IBServices,frmuMessage,
+  frmuMain, zluUtility, dmuMain, zluContextHelp, IBErrorCodes;
 
 {$R *.DFM}
 
@@ -198,7 +198,7 @@ var
   lRestoreService: TIBRestoreService;
   lOptions: TRestoreOptions;
   lVerboseInfo: TStringList;
-  Reg: TRegistry;
+  dbProps: TibcDatabaseProps;
 begin
   if VerifyInputData() then
   begin
@@ -305,18 +305,15 @@ begin
             lRestoreService.Detach();
 
           { If the database alias entered does not already exist, create it }
-          if not frmMain.AliasExists (cbDBAlias.Text) then
+          // kris start
+          if not PersistentInfo.DatabaseAliasExists(FSourceServerNode.ServerName, cbDBAlias.Text) then
           begin
-            Reg := TRegistry.Create;
-            if Reg.OpenKey(Format('%s%s\Databases\%s',[gRegServersKey, cbDBServer.Text, cbDBAlias.Text]),true) then
-            begin
-              Reg.WriteString('DatabaseFiles', lRestoreService.DatabaseName.Text);
-              Reg.WriteString('Username', FSourceServerNode.UserName);
-              Reg.CloseKey;
-              Reg.Free;
-              frmMain.tvMainChange(nil, nil);
+            PersistentInfo.GetDatabaseProps(cbDBServer.Text, cbDBAlias.Text, dbProps);
+            dbProps.DatabaseFiles := lRestoreService.DatabaseName.Text;
+            dbProps.Username := FSourceServerNode.UserName;
+            PersistentInfo.StoreDatabaseProps(cbDBServer.Text, cbDBAlias.Text, dbProps);
+            frmMain.tvMainChange(nil, nil);
             end;
-          end;
           ModalResult := mrOK;          
         except
           on E: EIBError do
@@ -829,11 +826,19 @@ function TfrmDBRestore.VerifyInputData(): boolean;
 var
   lCnt: integer;
   found: boolean;
-  fp: string;
 
 begin
   result := true;
   found := false;
+  // check if backup alias combo box is not empty
+  // problem: how to restore if there's no backup alias
+  if cbBackupAlias.Text = '' then
+  begin
+    DisplayMsg(ERR_BACKUP_ALIAS, '');
+    cbBackupAlias.SetFocus;
+    Result := false;
+    Exit;
+  end;
 
   // check if combo box is empty or nothing selected
   if (cbDBServer.ItemIndex = -1) or (cbDBServer.Text = '') or (cbDBServer.Text = ' ') then
@@ -856,18 +861,7 @@ begin
   for lCnt := 1 to sgDatabaseFiles.RowCount - 1 do
   begin
     if (sgDatabaseFiles.Cells[0,lCnt] <> '') then
-    begin
       found := true;
-      fp := ExtractFilePath(sgDatabaseFiles.Cells[0,lCnt]);
-
-      if fp = '' then
-      begin
-        DisplayMsg(ERR_NO_PATH, 'File: '+sgDatabaseFiles.Cells[0,lCnt]);
-        sgDatabaseFiles.SetFocus;
-        result := false;
-        exit;
-      end;
-    end;
   end;
 
   if not found then
@@ -917,7 +911,7 @@ begin
   if SourceBackupAliasNode is TibcBackupAliasNode then
     lBackupAliasNode := TibcBackupAliasNode(SourceBackupAliasNode);
   try
-    frmDBRestore := TfrmDBRestore.Create(Application);
+    frmDBRestore := TfrmDBRestore.Create(Application.MainForm);
     frmDBRestore.FSourceServerNode := SourceServerNode;
     frmDBRestore.stxBackupServer.Caption := SourceServerNode.NodeName;
     lCurrBackupAliasesNode := frmMain.tvMain.Items.GetNode(SourceServerNode.BackupFilesID);

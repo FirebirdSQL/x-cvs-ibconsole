@@ -144,7 +144,12 @@ type
     Image1: TImage;
     Label1: TLabel;
     IBTable: TIBTable;
+    Panel3: TPanel;
     DBNavigator1: TDBNavigator;
+    Panel4: TPanel;
+    sbCommitRefresh: TSpeedButton;
+    Panel6: TPanel;
+    cbExtractData: TCheckBox;
     procedure cbObjectListChange(Sender: TObject);
     procedure pgcPropertiesChange(Sender: TObject);
     procedure dbgDataCellClick(Column: TColumn);
@@ -167,6 +172,8 @@ type
     procedure rbDependentClick(Sender: TObject);
     procedure rbDependedOnClick(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
+    procedure sbCommitRefreshClick(Sender: TObject);
+    procedure cbExtractDataClick(Sender: TObject);
 
   private
     { Private declarations }
@@ -226,17 +233,7 @@ implementation
 
 uses
   frmuMessage, frmuDisplayBlob, frmuDispMemo, dmuMain,
-  zluUtility, zluGlobal, IBSQL, IBExtract, frmuMain, filectrl, registry;
-
-type
-  TWinState = record
-    _Top,
-    _Left,
-    _Height,
-    _Width: integer;
-    _State: TWindowState;
-    _Read: boolean;
-  end;
+  zluUtility, zluGlobal, IBSQL, IBExtract, frmuMain, filectrl, zluPersistent;
 
 {$R *.DFM}
 
@@ -654,8 +651,6 @@ var
   ParentNode, ChildNode: TTreeNode;
 
 begin
-  Query := nil;
-  Trans := nil;
   ParentNode := nil;
 
   if ObjType in [NODE_TABLES, NODE_GENERATORS, NODE_EXCEPTIONS, NODE_FUNCTIONS] then
@@ -681,117 +676,119 @@ begin
     end;
   end;
 
+  Query := TIBSql.Create (self);
+  Trans := TIBTransaction.Create (self);
   try
-    Query := TIBSql.Create (self);
-    Trans := TIBTransaction.Create (self);
+    try
+      Trans.DefaultDatabase := FDatabase;
+      Query.Transaction := Trans;
+      Query.Database := FDatabase;
 
-    Trans.DefaultDatabase := FDatabase;
-    Query.Transaction := Trans;
-    Query.Database := FDatabase;
-
-    with Query do
-    begin
-      SQL.Add (SQLStr);
-      Transaction.StartTransaction;
-      Prepare;
-      ExecQuery;
-      tvDependencies.Items.BeginUpdate;
-      tvDependencies.Items.Clear;
-      if ObjType = NODE_DOMAINS then
+      with Query do
       begin
-        while not EOF do
-        begin
-          if AnsiCompareText (RelName, Trim(Fields[0].AsString)) <> 0 then
-          begin
-            RelName := Trim(Fields[0].AsString);
-            ParentNode := tvDependencies.Items.Add (nil, RelName);
-            ParentNode.ImageIndex := NODE_TABLES_IMG;
-            ParentNode.SelectedIndex := NODE_TABLES_IMG;
-          end;
-          ChildNode := tvDependencies.Items.AddChild(ParentNode, Trim(Fields[1].AsString));
-          ChildNode.ImageIndex := NODE_COLUMNS_IMG;
-          ChildNode.SelectedIndex := NODE_COLUMNS_IMG;
-          ParentNode.Expand (true);
-          Next;
-        end;
-      end
-      else
-      begin
-        while not EOF do
-        begin
-          if AnsiCompareText (RelName, Trim(Fields[1].AsString)) <> 0 then
-          begin
-            RelName := Trim(Fields[1].AsString);
-            if (not (Fields[2].IsNull)) or
-               (Fields[4].AsInteger <> 0) then
-            begin
-              ParentNode := tvDependencies.Items.Add (nil, RelName);
-              ParentNode.ImageIndex := GetImageIndex (Fields[4].AsInteger);
-              ParentNode.SelectedIndex := ParentNode.ImageIndex;
-            end;
-          end;
-          if not (Fields[2].IsNull) then
-          begin
-            ChildNode := tvDependencies.Items.AddChild(ParentNode, Trim(Fields[2].AsString));
-            ChildNode.ImageIndex := NODE_COLUMNS_IMG;
-            ChildNode.SelectedIndex := NODE_COLUMNS_IMG;
-            ParentNode.Expand (true);
-          end;
-          Next;
-        end;
-        Close;
-
-        { Now get the objects which depend on the current object }
-        SQLStr := 'select rdb$dependent_name, rdb$depended_on_name,';
-        SQLStr := Format('%s rdb$field_name, rdb$dependent_type, rdb$depended_on_type', [SQLStr]);
-        SQLStr := Format('%s from rdb$dependencies where', [SQLStr]);
-        SQLStr := Format('%s rdb$depended_on_name= ''%s''', [SQLStr, ObjName]);
-        SQLStr := Format('%s order by rdb$dependent_name, rdb$field_name, rdb$depended_on_name', [SQLStr]);
-        Sql.Clear;
-        Sql.Add(SQLStr);
+        SQL.Add (SQLStr);
+        Transaction.StartTransaction;
         Prepare;
         ExecQuery;
-        tvDependents.Items.BeginUpdate;
-        tvDependents.Items.Clear;
-        RelName := '';
-        while not EOF do
+        tvDependencies.Items.BeginUpdate;
+        tvDependencies.Items.Clear;
+        if ObjType = NODE_DOMAINS then
         begin
-          if AnsiCompareText (RelName, Trim(Fields[0].AsString)) <> 0 then
+          while not EOF do
           begin
-            RelName := Trim(Fields[0].AsString);
-            if (not (Fields[2].IsNull)) or
-               (Fields[3].AsInteger <> 0) then
+            if AnsiCompareText (RelName, Trim(Fields[0].AsString)) <> 0 then
             begin
-              ParentNode := tvDependents.Items.Add (nil, RelName);
-              ParentNode.ImageIndex := GetImageIndex (Fields[3].AsInteger);
-              ParentNode.SelectedIndex := ParentNode.ImageIndex;
+              RelName := Trim(Fields[0].AsString);
+              ParentNode := tvDependencies.Items.Add (nil, RelName);
+              ParentNode.ImageIndex := NODE_TABLES_IMG;
+              ParentNode.SelectedIndex := NODE_TABLES_IMG;
             end;
-          end;
-          if not (Fields[2].IsNull) then
-          begin
-            ChildNode := tvDependents.Items.AddChild(ParentNode, Trim(Fields[2].AsString));
+            ChildNode := tvDependencies.Items.AddChild(ParentNode, Trim(Fields[1].AsString));
             ChildNode.ImageIndex := NODE_COLUMNS_IMG;
             ChildNode.SelectedIndex := NODE_COLUMNS_IMG;
             ParentNode.Expand (true);
+            Next;
           end;
-          Next;
+        end
+        else
+        begin
+          while not EOF do
+          begin
+            if AnsiCompareText (RelName, Trim(Fields[1].AsString)) <> 0 then
+            begin
+              RelName := Trim(Fields[1].AsString);
+              if (not (Fields[2].IsNull)) or
+                 (Fields[4].AsInteger <> 0) then
+              begin
+                ParentNode := tvDependencies.Items.Add (nil, RelName);
+                ParentNode.ImageIndex := GetImageIndex (Fields[4].AsInteger);
+                ParentNode.SelectedIndex := ParentNode.ImageIndex;
+              end;
+            end;
+            if not (Fields[2].IsNull) then
+            begin
+              ChildNode := tvDependencies.Items.AddChild(ParentNode, Trim(Fields[2].AsString));
+              ChildNode.ImageIndex := NODE_COLUMNS_IMG;
+              ChildNode.SelectedIndex := NODE_COLUMNS_IMG;
+              ParentNode.Expand (true);
+            end;
+            Next;
+          end;
+          Close;
+
+          { Now get the objects which depend on the current object }
+          SQLStr := 'select rdb$dependent_name, rdb$depended_on_name,';
+          SQLStr := Format('%s rdb$field_name, rdb$dependent_type, rdb$depended_on_type', [SQLStr]);
+          SQLStr := Format('%s from rdb$dependencies where', [SQLStr]);
+          SQLStr := Format('%s rdb$depended_on_name= ''%s''', [SQLStr, ObjName]);
+          SQLStr := Format('%s order by rdb$dependent_name, rdb$field_name, rdb$depended_on_name', [SQLStr]);
+          Sql.Clear;
+          Sql.Add(SQLStr);
+          Prepare;
+          ExecQuery;
+          tvDependents.Items.BeginUpdate;
+          tvDependents.Items.Clear;
+          RelName := '';
+          while not EOF do
+          begin
+            if AnsiCompareText (RelName, Trim(Fields[0].AsString)) <> 0 then
+            begin
+              RelName := Trim(Fields[0].AsString);
+              if (not (Fields[2].IsNull)) or
+                 (Fields[3].AsInteger <> 0) then
+              begin
+                ParentNode := tvDependents.Items.Add (nil, RelName);
+                ParentNode.ImageIndex := GetImageIndex (Fields[3].AsInteger);
+                ParentNode.SelectedIndex := ParentNode.ImageIndex;
+              end;
+            end;
+            if not (Fields[2].IsNull) then
+            begin
+              ChildNode := tvDependents.Items.AddChild(ParentNode, Trim(Fields[2].AsString));
+              ChildNode.ImageIndex := NODE_COLUMNS_IMG;
+              ChildNode.SelectedIndex := NODE_COLUMNS_IMG;
+              ParentNode.Expand (true);
+            end;
+            Next;
+          end;
         end;
+        tvDependents.Items.Endupdate;
+        tvDependencies.Items.EndUpdate;
+        Trans.Commit;
+        Close;
       end;
-      tvDependents.Items.Endupdate;
-      tvDependencies.Items.EndUpdate;
-      Trans.Commit;
-      Close;
-      Free;
-      Trans.Free;
+    except on E: Exception do
+      begin
+        ShowMessage (E.Message);
+        if Assigned (Query) then
+          Query.Free;
+        if Assigned (Trans) then
+          Trans.Free;
+      end;
     end;
-  except on E: Exception do
-    begin
-      ShowMessage (E.Message);
-      if Assigned (Query) then
-        Query.Free;
-      if Assigned (Trans) then
-        Trans.Free;
-    end;
+  finally
+    Trans.Free;
+    Query.Free;
   end;
 end;
 
@@ -1366,6 +1363,7 @@ end;
 procedure TfrmObjectView.FormShow(Sender: TObject);
 begin
   FIdx := cbObjectList.ItemIndex;
+  frmMain.PersistentInfo.GetFormSettings(Self, 'ObjState');
 end;
 
 procedure TfrmObjectView.rbDependentClick(Sender: TObject);
@@ -1382,29 +1380,9 @@ end;
 
 procedure TfrmObjectView.FormClose(Sender: TObject;
   var Action: TCloseAction);
-var
-  Reg: TRegistry;
-  State: TWinState;
 begin
-    with State do
-    begin
-      _Top := Top;
-      _Left := Left;
-      _Height := Height;
-      _Width := Width;
-      _State := WindowState;
-      _Read := true;
-    end;
-  Reg := TRegistry.Create;
-  with Reg do
-  try
-    OpenKey(gRegSettingsKey,false);
-    WriteBinaryData('ObjState', State, sizeof(State));
-    CloseKey;
-  finally
-    Free;
-  end;
-  frmMain.UpdateWindowList (Caption, Self, True);
+  frmMain.PersistentInfo.StoreFormSettings(Self, 'ObjState');
+  frmMain.UpdateWindowList(Caption, Self, True);
 end;
 
 procedure TfrmObjectView.Refetch;
@@ -1465,6 +1443,75 @@ destructor TFunctionData.Destroy;
 begin
   Params.Free;
   inherited;
+end;
+
+procedure TfrmObjectView.sbCommitRefreshClick(Sender: TObject);
+begin
+  if Not IBTable.Active then exit;
+  IBTable.Active := false;
+  try
+    IBTable.Database.DefaultTransaction.Commit;
+  except
+    IBTable.Database.DefaultTransaction.Rollback;
+  end;
+  IBTable.Database.DefaultTransaction.StartTransaction;
+  IBTable.Active := true;
+end;
+
+procedure TfrmObjectView.cbExtractDataClick(Sender: TObject);
+var
+  ObjName: String;
+  IBExtract: TIBExtract;
+  ObjectType : TExtractObjectTypes;
+  ExtractTypes : TExtractTypes;
+begin
+  ObjName := cbObjectList.Items[cbObjectList.ItemIndex];
+  FMetadataRefreshList[FIdx] := false;
+  IBExtract := TIBExtract.Create (self);
+  Screen.Cursor := crHourGlass;
+  ExtractTypes := [];
+  try
+  with IBExtract do
+     begin
+     Database := FDatabase;
+     ShowSystem := FShowSystem;
+           case FObjType of
+              NODE_DOMAINS:
+                 ObjectType := eoDomain;
+              NODE_TABLES:
+                 begin
+                 ObjectType := eoTable;
+                 if cbExtractData.Checked then
+                    ExtractTypes := [etTrigger, etDomain, etForeign, etData]
+                 else
+                    ExtractTypes := [etTrigger, etDomain, etForeign];
+                 end;
+              NODE_VIEWS:
+                  ObjectType := eoView;
+              NODE_PROCEDURES:
+                  ObjectType := eoProcedure;
+              NODE_FUNCTIONS:
+                  ObjectType := eoFunction;
+              NODE_GENERATORS:
+                  ObjectType := eoGenerator;
+              NODE_EXCEPTIONS:
+                  ObjectType := eoException;
+              NODE_BLOB_FILTERS:
+                  ObjectType := eoBLOBFilter;
+              NODE_ROLES:
+                  ObjectType := eoRole;
+              else
+                  ObjectType := eoDatabase;
+              end;
+     ExtractObject(ObjectType, ObjName, ExtractTypes);
+     reMetadata.Text := Items.Text;
+     reMetadata.Perform( EM_SCROLLCARET, 0, 0 );
+     end;
+  finally
+     IBExtract.Free;
+  Screen.Cursor := crDefault;
+end;
+
 end;
 
 end.

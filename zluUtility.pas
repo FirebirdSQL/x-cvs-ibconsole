@@ -2,36 +2,21 @@
  * The contents of this file are subject to the InterBase Public License
  * Version 1.0 (the "License"); you may not use this file except in
  * compliance with the License.
- * 
+ *
  * You may obtain a copy of the License at http://www.Inprise.com/IPL.html.
- * 
+ *
  * Software distributed under the License is distributed on an "AS IS"
  * basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. See
  * the License for the specific language governing rights and limitations
  * under the License.  The Original Code was created by Inprise
  * Corporation and its predecessors.
- * 
+ *
  * Portions created by Inprise Corporation are Copyright (C) Inprise
  * Corporation. All Rights Reserved.
- * 
- * Contributor(s): ______________________________________.
+ *
+ * Contributor(s): Krzysztof Golko.
 }
 
-{****************************************************************
-*
-*  z l u U t i l i t y
-*
-****************************************************************
-*  Author: The Client Server Factory Inc.
-*  Date:   March 1, 1999
-*
-*  Description:  This unit contains utility functions used throughout
-*                the application
-*
-*****************************************************************
-* Revisions:
-*
-*****************************************************************}
 
 unit zluUtility;
 
@@ -56,32 +41,14 @@ function ConvertStr(lStr : String) : String;
 function ObjTypeToStr(const objType: integer): string;
 function StripMenuChars(const Caption: String): String;
 function GetImageIndex (const ObjType: integer): integer;
-function Max (const val1, val2: integer): integer;
 function IsValidDBName(const DBName: String): boolean;
 
 implementation
 
 uses
-  zluGlobal, frmuMessage, IBHeader;
+  zluGlobal, zluPersistent, frmuMessage, IBHeader;
 
-{****************************************************************
-*
-*  C h e c k D i r e c t o r y ()
-*
-****************************************************************
-*  Author: The Client Server Factory Inc.
-*  Date:   May 9, 1999
-*
-*  Input:
-*
-*  Return:
-*
-*  Description:
-*
-*****************************************************************
-* Revisions:
-*
-*****************************************************************}
+
 function CheckDirectory(Directory: string): boolean;
 begin
   if (Directory <> '') and not (DirectoryExists(Directory)) then
@@ -105,24 +72,6 @@ begin
     result := true;
 end;
 
-{****************************************************************
-*
-*  G e t N e w F i l e N a m e ()
-*
-****************************************************************
-*  Author: The Client Server Factory Inc.
-*  Date:   May 9, 1999
-*
-*  Input:
-*
-*  Return:
-*
-*  Description:
-*
-*****************************************************************
-* Revisions:
-*
-*****************************************************************}
 function GetNewFileName(Directory: string; FileExtension: string): string;
 var
   lFileName: string;
@@ -180,24 +129,6 @@ begin
   result := Trim(lRetVal);
 end;
 
-{****************************************************************
-*
-*  I s R u n n i n g ( )
-*
-****************************************************************
-*  Author: The Client Server Factory Inc.
-*  Date:   March 1, 1999
-*
-*  Input:
-*
-*  Return:
-*
-*  Description:
-*
-*****************************************************************
-* Revisions:
-*
-*****************************************************************}
 function IsIBRunning(): boolean;
 begin
   if GetWindow(GetDesktopWindow,GW_HWNDNEXT)= FindWindow('IB_Server', 'InterBase Server') then
@@ -206,24 +137,6 @@ begin
     result := true;
 end;
 
-{****************************************************************
-*
-*  O S V e r s i o n I n f o ( )
-*
-****************************************************************
-*  Author: The Client Server Factory Inc.
-*  Date:   March 1, 1999
-*
-*  Input:
-*
-*  Return:
-*
-*  Description:
-*
-*****************************************************************
-* Revisions:
-*
-*****************************************************************}
 function OSVersionInfo(): DWORD;
 var
   lVersion: Windows.OSVERSIONINFO;
@@ -259,13 +172,8 @@ var
   lStrVal: string;
 begin
   lStrVal := Trim(InputStr);
-  //Kris 13-Aug-2000 start
-  //old code
-  //for i := 0 to Length(lStrVal) - 1 do
 
-  //new code
   for i := 1 to Length(lStrVal) do
-  //Kris 13-Aug-2000 old
   begin
     if (Ord(lStrVal[i]) in [32..126]) then
     begin
@@ -282,24 +190,6 @@ begin
   result := lStrVal;
 end;
 
-{****************************************************************
-*
-*  S t a r t G u a r d i a n ( )
-*
-****************************************************************
-*  Author: The Client Server Factory Inc.
-*  Date:   March 1, 1999
-*
-*  Input:
-*
-*  Return:
-*
-*  Description:
-*
-*****************************************************************
-* Revisions:
-*
-*****************************************************************}
 function StartGuardian(): boolean;
 var
   lRegistry: TRegistry;
@@ -323,24 +213,6 @@ begin
   end;
 end;
 
-{****************************************************************
-*
-*  S t a r t S e r v e r ( )
-*
-****************************************************************
-*  Author: The Client Server Factory Inc.
-*  Date:   March 1, 1999
-*
-*  Input:
-*
-*  Return:
-*
-*  Description:
-*
-*****************************************************************
-* Revisions:
-*
-*****************************************************************}
 function StartServer(): boolean;
 var
   lRegistry: TRegistry;
@@ -376,24 +248,6 @@ begin
   end;
 end;
 
-{****************************************************************
-*
-*  S t o p S e r v e r ( )
-*
-****************************************************************
-*  Author: The Client Server Factory Inc.
-*  Date:   March 1, 1999
-*
-*  Input:
-*
-*  Return:
-*
-*  Description:
-*
-*****************************************************************
-* Revisions:
-*
-*****************************************************************}
 function StopServer(): boolean;
 var
   lHWND: HWND;
@@ -559,15 +413,8 @@ begin
 end;
 
 function IsServerRegistered(const Alias: String): boolean;
-var
-  Reg: TRegistry;
 begin
-  Reg := TRegistry.Create;
-  with Reg do
-  begin
-    result := OpenKey(Format('%s%s',[gRegServersKey,Alias]), false);
-    Free;
-  end;
+  Result := PersistentInfo.ServerAliasExists(Alias);
 end;
 
 function Max (const val1, val2: integer): integer;

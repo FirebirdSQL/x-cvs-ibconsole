@@ -14,24 +14,8 @@
  * Portions created by Inprise Corporation are Copyright (C) Inprise
  * Corporation. All Rights Reserved.
  * 
- * Contributor(s): ______________________________________.
+ * Contributor(s): Krzysztof Golko
 }
-
-{****************************************************************
-*
-*  f r m u S e r v e r L o g i n
-*
-****************************************************************
-*  Author: The Client Server Factory Inc.
-*  Date:   March 1, 1999
-*
-*  Description:  This unit provides an interface for connecting
-*                to a server
-*
-*****************************************************************
-* Revisions:
-*
-*****************************************************************}
 
 unit frmuServerLogin;
 
@@ -56,9 +40,11 @@ type
     procedure FormShow(Sender: TObject);
     procedure btnCancelClick(Sender: TObject);
     procedure btnLoginClick(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
   private
     { Private declarations }
     function VerifyInputData(): boolean;
+    class function DoLogin(var CurrSelServer: TibcServerNode): boolean;
     procedure WMNCLButtonDown( var Message: TWMNCLBUTTONDOWN ); message WM_NCLBUTTONDOWN ;
   public
     { Public declarations }
@@ -79,63 +65,8 @@ begin
   Result := WinHelp(WindowHandle,CONTEXT_HELP_FILE,HELP_CONTEXT,SERVER_LOGIN);
 end;
 
-{****************************************************************
-*
-*  S e r v e r L o g i n ( )
-*
-****************************************************************
-*  Author: The Client Server Factory Inc.
-*  Date:   March 1, 1999
-*
-*  Input:  CurrSelServer - The specified server
-*          SilentLogin   - Indicates whether or not no perform a
-*                          silent login.
-*
-*  Return: Boolean - Indicates the success/failure of the
-*                    operation
-*
-*  Description:  If SilentLogin is true an attempt is made to
-*                connect to the server without promting the user
-*                for login information, otherwise the user is
-*                prompted for login information.
-*
-*****************************************************************
-* Revisions:
-*
-*****************************************************************}
-function ServerLogin(var CurrSelServer: TibcServerNode; const SilentLogin: boolean): boolean;
-var
-  frmServerLogin: TfrmServerLogin;
+class function TfrmServerLogin.DoLogin(var CurrSelServer: TibcServerNode): boolean;
 begin
-  // check if a silent login was specified
-  if not SilentLogin then
-  begin
-    // if no silent login was specified
-    frmServerLogin:= TfrmServerLogin.Create(Application);
-    try
-      // set server name
-      frmServerLogin.stxServerName.Caption := CurrSelServer.NodeName;
-      // set username
-      frmServerLogin.edtUsername.Text := CurrSelServer.UserName;
-      // show form as modal dialog box
-      frmServerLogin.ShowModal;
-      if frmServerLogin.ModalResult = mrOK then
-      begin
-        // set server details based on user input
-        CurrSelServer.UserName := frmServerLogin.edtUsername.Text;
-        CurrSelServer.Password := frmServerLogin.edtPassword.Text;
-      end
-      else
-      begin
-        result := false;
-        Exit;
-      end;
-    finally
-      // deallocate memory
-      frmServerLogin.Free;
-    end;
-  end;
-
   // if a silent login is specified or the user has successfully entered the
   // proper login details
   try
@@ -163,9 +94,43 @@ begin
         else
           DisplayMsg (ERR_SERVER_LOGIN, E.Message);
       end;
-      result := false;      
+      result := false;
     end;
   end;
+end;
+
+function ServerLogin(var CurrSelServer: TibcServerNode; const SilentLogin: boolean): boolean;
+var
+  frmServerLogin: TfrmServerLogin;
+begin
+  // check if a silent login was specified
+  if not SilentLogin then
+  begin
+    // if no silent login was specified
+    frmServerLogin:= TfrmServerLogin.Create(Application.MainForm);
+    try
+      // set server and user name
+      frmServerLogin.stxServerName.Caption := CurrSelServer.NodeName;
+      frmServerLogin.edtUsername.Text := CurrSelServer.UserName;
+      // show form as modal dialog box
+      Result := FALSE;
+      while frmServerLogin.ShowModal = mrOk do
+      begin
+        CurrSelServer.UserName := frmServerLogin.edtUsername.Text;
+        CurrSelServer.Password := frmServerLogin.edtPassword.Text;
+        if TfrmServerLogin.DoLogin(CurrSelServer) then
+        begin
+          Result := TRUE;
+          Break;
+        end;
+      end;
+    finally
+      // deallocate memory
+      frmServerLogin.Release;
+    end;
+  end
+  else
+    Result := TfrmServerLogin.DoLogin(CurrSelServer);
 end;
 
 procedure TfrmServerLogin.btnCancelClick(Sender: TObject);
@@ -179,25 +144,7 @@ begin
     ModalResult := mrOK;
 end;
 
-{****************************************************************
-*
-*  V e r i f y I n p u t D a t a ( )
-*
-****************************************************************
-*  Author: The Client Server Factory Inc.
-*  Date:   March 1, 1999
-*
-*  Input:  None
-*
-*  Return: Boolean - Indicates the success/failure of the operation
-*
-*  Description:  Performs some basic validation on data entered by
-*                the user
-*
-*****************************************************************
-* Revisions:
-*
-*****************************************************************}
+{ Performs some basic validation on data entered by the user }
 function TfrmServerLogin.VerifyInputData(): boolean;
 begin
   result := true;
@@ -225,10 +172,11 @@ procedure TfrmServerLogin.FormShow(Sender: TObject);
 begin
   if edtUserName.Text = '' then
     edtUserName.SetFocus
-  else if edtPassword.Text = '' then
-    edtPassword.SetFocus
-  else
-    btnLogin.SetFocus;
+  else {if edtPassword.Text = '' then }
+  begin
+    edtPassword.SelectAll;
+    edtPassword.SetFocus;
+  end;
 end;
 
 procedure TfrmServerLogin.WMNCLButtonDown( var Message: TWMNCLButtonDown );
@@ -245,6 +193,12 @@ begin
     Message.Result := 0;
   end else
    inherited;
+end;
+
+procedure TfrmServerLogin.FormDestroy(Sender: TObject);
+begin
+  inherited;
+  edtPassword.Clear;
 end;
 
 end.

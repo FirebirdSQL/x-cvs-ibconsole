@@ -50,7 +50,6 @@ type
     procedure cbOptionsExit(Sender: TObject);
     procedure cbOptionsKeyDown(Sender: TObject; var Key: Word;
       Shift: TShiftState);
-    procedure sgOptionsDblClick(Sender: TObject);
     procedure sgOptionsDrawCell(Sender: TObject; ACol, ARow: Integer;
       Rect: TRect; State: TGridDrawState);
     procedure sgOptionsSelectCell(Sender: TObject; ACol, ARow: Integer;
@@ -69,7 +68,7 @@ var
 
 implementation
 
-uses zluGlobal, Registry;
+uses zluGlobal;
 
 {$R *.DFM}
 const
@@ -127,98 +126,19 @@ begin
 end;
 
 procedure TfrmSQLOptions.btnApplyClick(Sender: TObject);
-var
-  NewSetting: boolean;
-  Reg: TRegistry;
 begin
   inherited;
-  Reg := TRegistry.Create;
-  Screen.Cursor := crHourGlass;
-  with Reg do
-  begin
-    OpenKey (gRegSettingsKey, false);
-
-    if sgOptions.Cells[OPTION_VALUE_COL,SHOW_QUERY_PLAN_ROW] = 'True' then
-      NewSetting := true
-    else
-      NewSetting := false;
-
-    if NewSetting <> gAppSettings[SHOW_QUERY_PLAN].Setting then
-    begin
-      gAppSettings[SHOW_QUERY_PLAN].Setting := NewSetting;
-      WriteBool(gAppSettings[SHOW_QUERY_PLAN].Name, gAppSettings[SHOW_QUERY_PLAN].Setting);
-    end;
-
-
-    if sgOptions.Cells[OPTION_VALUE_COL,AUTO_COMMIT_DDL_ROW] = 'True' then
-      NewSetting := true
-    else
-      NewSetting := false;
-
-    if NewSetting <> gAppSettings[AUTO_COMMIT_DDL].Setting then
-    begin
-      gAppSettings[AUTO_COMMIT_DDL].Setting := NewSetting;
-      WriteBool(gAppSettings[AUTO_COMMIT_DDL].Name, gAppSettings[AUTO_COMMIT_DDL].Setting);
-    end;
-
-    if gAppSettings[CHARACTER_SET].Setting <> sgOptions.Cells[OPTION_VALUE_COL,CHARACTER_SET_ROW] then
-    begin
-      gAppSettings[CHARACTER_SET].Setting := sgOptions.Cells[OPTION_VALUE_COL,CHARACTER_SET_ROW];
-      WriteString(gAppSettings[CHARACTER_SET].Name, gAppSettings[CHARACTER_SET].Setting);
-    end;
-
-    if gAppSettings[BLOB_DISPLAY].Setting <> sgOptions.Cells[OPTION_VALUE_COL,BLOB_DISPLAY_ROW] then
-    begin
-      gAppSettings[BLOB_DISPLAY].Setting := sgOptions.Cells[OPTION_VALUE_COL,BLOB_DISPLAY_ROW];
-      WriteString(gAppSettings[BLOB_DISPLAY].Name, gAppSettings[BLOB_DISPLAY].Setting);
-    end;
-
-    if gAppSettings[BLOB_SUBTYPE].Setting <> sgOptions.Cells[OPTION_VALUE_COL,BLOB_SUBTYPE_ROW] then
-    begin
-      gAppSettings[BLOB_SUBTYPE].Setting := sgOptions.Cells[OPTION_VALUE_COL,BLOB_SUBTYPE_ROW];
-      WriteString(gAppSettings[BLOB_SUBTYPE].Name, gAppSettings[BLOB_SUBTYPE].Setting);
-    end;
-
-    if gAppSettings[ISQL_TERMINATOR].Setting <> sgOptions.Cells[OPTION_VALUE_COL,ISQL_TERMINATOR_ROW] then
-    begin
-      gAppSettings[ISQL_TERMINATOR].Setting := sgOptions.Cells[OPTION_VALUE_COL,ISQL_TERMINATOR_ROW];
-      WriteString(gAppSettings[ISQL_TERMINATOR].Name, gAppSettings[ISQL_TERMINATOR].Setting);
-    end;
-
-    if gAppSettings[DEFAULT_DIALECT].Setting <> StrToInt(sgOptions.Cells[OPTION_VALUE_COL,DEFAULT_DIALECT_ROW]) then
-    begin
-      gAppSettings[DEFAULT_DIALECT].Setting := StrToInt(sgOptions.Cells[OPTION_VALUE_COL,DEFAULT_DIALECT_ROW]);
-      WriteInteger(gAppSettings[DEFAULT_DIALECT].Name, gAppSettings[DEFAULT_DIALECT].Setting);
-    end;
-
-    if gAppSettings[UPDATE_ON_CONNECT].Setting <> cbUpdateConnect.Checked then
-    begin
-      gAppSettings[UPDATE_ON_CONNECT].Setting := cbUpdateConnect.Checked;
-      WriteBool(gAppSettings[UPDATE_ON_CONNECT].Name, gAppSettings[UPDATE_ON_CONNECT].Setting);
-    end;
-
-    if gAppSettings[UPDATE_ON_CREATE].Setting <> cbUpdateCreate.Checked then
-    begin
-      gAppSettings[UPDATE_ON_CREATE].Setting := cbUpdateCreate.Checked;
-      WriteBool(gAppSettings[UPDATE_ON_CREATE].Name, gAppSettings[UPDATE_ON_CREATE].Setting);
-    end;
-
-    if gAppSettings[CLEAR_INPUT].Setting <> cbClearInput.Checked then
-    begin
-      gAppSettings[CLEAR_INPUT].Setting := cbClearInput.Checked;
-      WriteBool(gAppSettings[CLEAR_INPUT].Name, gAppSettings[CLEAR_INPUT].Setting);
-    end;
-
-    if gAppSettings[COMMIT_ON_EXIT].Setting <> rgTransactions.ItemIndex then
-    begin
-      gAppSettings[COMMIT_ON_EXIT].Setting := rgTransactions.ItemIndex;
-      WriteInteger(gAppSettings[COMMIT_ON_EXIT].Name, gAppSettings[COMMIT_ON_EXIT].Setting);
-    end;
-
-    CloseKey;
-    Free;
-  end;
-  Screen.Cursor := crDefault;
+    gAppSettings[SHOW_QUERY_PLAN].Setting := sgOptions.Cells[OPTION_VALUE_COL,SHOW_QUERY_PLAN_ROW] = 'True';
+    gAppSettings[AUTO_COMMIT_DDL].Setting := sgOptions.Cells[OPTION_VALUE_COL,AUTO_COMMIT_DDL_ROW] = 'True';
+    gAppSettings[CHARACTER_SET].Setting := sgOptions.Cells[OPTION_VALUE_COL,CHARACTER_SET_ROW];
+    gAppSettings[BLOB_DISPLAY].Setting := sgOptions.Cells[OPTION_VALUE_COL,BLOB_DISPLAY_ROW];
+    gAppSettings[BLOB_SUBTYPE].Setting := sgOptions.Cells[OPTION_VALUE_COL,BLOB_SUBTYPE_ROW];
+    gAppSettings[ISQL_TERMINATOR].Setting := sgOptions.Cells[OPTION_VALUE_COL,ISQL_TERMINATOR_ROW];
+    gAppSettings[DEFAULT_DIALECT].Setting := StrToInt(sgOptions.Cells[OPTION_VALUE_COL,DEFAULT_DIALECT_ROW]);
+    gAppSettings[UPDATE_ON_CONNECT].Setting := cbUpdateConnect.Checked;
+    gAppSettings[UPDATE_ON_CREATE].Setting := cbUpdateCreate.Checked;
+    gAppSettings[CLEAR_INPUT].Setting := cbClearInput.Checked;
+    gAppSettings[COMMIT_ON_EXIT].Setting := rgTransactions.ItemIndex;
 end;
 
 procedure TfrmSQLOptions.cbOptionsChange(Sender: TObject);
@@ -248,6 +168,8 @@ var
   iIndex : Integer;
 begin
   inherited;
+  if (sgOptions.Row = CHARACTER_SET_ROW) and (cbOptions.Text = '') then
+    cbOptions.ItemIndex := cbOptions.Items.IndexOf('None');
   iIndex := cbOptions.Items.IndexOf(cbOptions.Text);
 
   if (iIndex = -1) and (sgOptions.Row <> ISQL_TERMINATOR_ROW) then
@@ -281,24 +203,6 @@ begin
   inherited;
   if (Key = VK_DOWN) and (ssAlt in Shift) then
     cbOptions.DroppedDown := true;
-end;
-
-procedure TfrmSQLOptions.sgOptionsDblClick(Sender: TObject);
-begin
-  inherited;
-  {
-  if sgOptions.Col = OPTION_VALUE_COL then
-  begin
-    if cbOptions.ItemIndex = cbOptions.Items.Count - 1 then
-      cbOptions.ItemIndex := 0
-    else
-      cbOptions.ItemIndex := cbOptions.ItemIndex + 1;
-
-    sgOptions.Cells[sgOptions.Col,sgOptions.Row] := cbOptions.Items[cbOptions.ItemIndex];
-    cbOptions.Visible := false;
-    sgOptions.SetFocus;
-  end;
-  }
 end;
 
 procedure TfrmSQLOptions.sgOptionsDrawCell(Sender: TObject; ACol,

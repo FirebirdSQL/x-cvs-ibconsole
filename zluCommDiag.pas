@@ -124,12 +124,10 @@ type
   private
     { private declarations }
     FAddress                : String;
-    FAddrResolved           : Boolean;
     FHostIP                 : String;
     FHostName               : String;
     FIPAddress              : LongInt;
     FLastError              : DWORD;
-//    FPackets                : Integer;
     FReply                  : TICMPEchoReply;
     FSize                   : Integer;
     FTimeout                : Integer;
@@ -522,7 +520,6 @@ var
   ptrHE   : PHostEnt;                  // pointer to HostEnt structure
 
 begin
-  result := false;
   // initialize winsock
   if WSAStartup($101, WSAData) <> 0 then
     raise TSVCException.Create('Can not initialize winsock.');
@@ -530,29 +527,21 @@ begin
   // set hostname
   FIPAddress:=inet_addr(PChar(FAddress));
 
-  // try to resolve hostname to ip address
-  if FIPAddress <> LongInt(INADDR_NONE) then
-    FHostName:=FAddress                // if no resolution is required
-  else
-  begin                                // otherwise, get host by name
-    ptrHE:=GetHostByName(PChar(FAddress));
-    if ptrHE = Nil then                // if the structure isn't filled
-    begin
-      FLastError:=GetLastError;        // get error code
-      FAddrResolved:=False;            // set resolution flag to false
-      Result:=FAddrResolved;
-      Exit;
-    end;
-
-    // set IP address, hostname and resolution flag True
-    FIPAddress:=LongInt(PLongInt(ptrHE^.h_addr_list^)^);
-    FHostName:=ptrHE.h_name;
-    FAddrResolved:=True;
-    Result:=FAddrResolved;
+  ptrHE:=GetHostByName(PChar(FAddress));
+  if ptrHE = Nil then                // if the structure isn't filled
+  begin
+    FLastError := GetLastError;        // get error code
+    Result := False;            // set resolution flag to false
+    Exit;
   end;
 
+  // set IP address, hostname and resolution flag True
+  FIPAddress := LongInt(PLongInt(ptrHE^.h_addr_list^)^);
+  FHostName := ptrHE.h_name;
+  Result := True;
+
   // set host IP
-  FHostIP:=StrPas(inet_ntoa(TInAddr(FIPAddress)));
+  FHostIP := StrPas(inet_ntoa(TInAddr(FIPAddress)));
 end;
 
 {****************************************************************

@@ -57,7 +57,7 @@ AutoIncBuild=0
 MajorVer=1
 MinorVer=0
 Release=0
-Build=319
+Build=324
 Debug=0
 PreRelease=0
 Special=0
@@ -68,7 +68,7 @@ CodePage=1252
 [Version Info Keys]
 CompanyName=Inprise Corporation
 FileDescription=IBConsole.exe
-FileVersion=1.0.0.319
+FileVersion=1.0.0.324
 InternalName=
 LegalCopyright=Copyright © 2000 Inprise Corporation
 LegalTrademarks=
@@ -77,35 +77,18 @@ ProductName=
 ProductVersion=1.0.0.0
 Comments=
 [Excluded Packages]
+$(DELPHI)\Projects\Bpl\doqbbde50.bpl=Open QBuilder BDE Engine
 $(DELPHI)\Bin\dclite50.bpl=Borland Integrated Translation Environment
 $(DELPHI)\Projects\Bpl\rbIP45.bpl=ReportBuilder wwRichEdit support
 $(DELPHI)\Projects\Bpl\GxComponents5.bpl=GExperts source components
 [HistoryLists\hlDebugSourcePath]
 Count=1
-Item0=$(DELPHI)\ibdac;$(DELPHI)\db;$(DELPHI)\midas
-[HistoryLists\hlConditionals]
-Count=2
-Item0=DEBUG_ONLY;IB6_ONLY
-Item1=DEBUG_ONLY
+Item0=$(DELPHI)\lib\ip2000d5\source;$(DELPHI)\RBuilder4\Source
 [HistoryLists\hlUnitAliases]
 Count=1
 Item0=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;
 [HistoryLists\hlSearchPath]
 Count=3
 Item0=$(DELPHI)\ibx\packages
-Item1=$(DELPHI)\Experts\GExperts
-Item2=$(DELPHI)\ibdac;$(DELPHI)\db;$(DELPHI)\midas
-[HistoryLists\hlUnitOutputDirectory]
-Count=2
-Item0=$(DELPHI)\Lib
-Item1=$(DELPHI)\Lib\Debug
-[HistoryLists\hlBPLOutput]
-Count=3
-Item0=c:\winnt\system32
-Item1=$(DELPHI)\bin
-Item2=c:\windows\system32
-[HistoryLists\hlDCPOutput]
-Count=3
-Item0=$(DELPHI)\lib
-Item1=$(DELPHI)\lib\Debug
-Item2=$DELPHI)\lib
+Item1=$(DELPHI)\SynEdit\source
+Item2=..\source

@@ -95,7 +95,7 @@ procedure ShowAboutDialog(ProductName, ProductVersion: string);
 var
   frmAbout: TfrmAbout;
 begin
-  frmAbout := TfrmAbout.Create(Application);
+  frmAbout := TfrmAbout.Create(Application.MainForm);
   with frmAbout do
   begin
     // show name and version

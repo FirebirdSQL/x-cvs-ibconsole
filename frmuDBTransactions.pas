@@ -113,7 +113,7 @@ var
 begin
   frmDBTransactions := Nil;
   try
-    frmDBTransactions := TfrmDBTransactions.Create(Application);
+    frmDBTransactions := TfrmDBTransactions.Create(Application.MainForm);
 
     Screen.Cursor := crHourGlass;
     frmDBTransactions.stxDatabase.Caption:=CurrSelDatabase.NodeName;

@@ -119,7 +119,7 @@ function RegisterServer(var ServerName,ServerAlias,UserName,Password, Descriptio
 var
   frmServerRegister: TfrmServerRegister;
 begin
-  frmServerRegister:= TfrmServerRegister.Create(Application);
+  frmServerRegister:= TfrmServerRegister.Create(Application.MainForm);
   try
     with frmServerRegister do
     begin

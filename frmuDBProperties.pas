@@ -879,7 +879,7 @@ var
   sOriginalSQLDialect: string;
   bOriginalConnectStatus: boolean;
 begin
-  frmDBProperties := TfrmDBProperties.Create(Application);
+  frmDBProperties := TfrmDBProperties.Create(Application.MainForm);
   lRegistry := TRegistry.Create();
   lSubKeys := TStringList.Create();
   lIBDBInfo := TIBDatabaseInfo.Create(frmDBProperties);

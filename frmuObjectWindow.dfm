@@ -3,7 +3,7 @@ object frmObjectView: TfrmObjectView
   Top = 217
   Width = 639
   Height = 479
-  BorderIcons = [biSystemMenu, biHelp]
+  BorderIcons = [biSystemMenu, biMinimize, biMaximize, biHelp]
   Caption = 'frmObjectView'
   Color = clBtnFace
   ParentFont = True
@@ -16,7 +16,7 @@ object frmObjectView: TfrmObjectView
   TextHeight = 13
   object StatusBar: TStatusBar
     Left = 0
-    Top = 432
+    Top = 433
     Width = 631
     Height = 19
     Panels = <
@@ -57,7 +57,7 @@ object frmObjectView: TfrmObjectView
     Left = 0
     Top = 29
     Width = 631
-    Height = 403
+    Height = 404
     ActivePage = tabProperties
     Align = alClient
     HotTrack = True
@@ -80,8 +80,8 @@ object frmObjectView: TfrmObjectView
         Left = 0
         Top = 0
         Width = 623
-        Height = 375
-        ActivePage = tabTables
+        Height = 376
+        ActivePage = tabDomains
         Align = alClient
         MultiLine = True
         TabOrder = 1
@@ -105,7 +105,7 @@ object frmObjectView: TfrmObjectView
           end
           object reConstraint: TRichEdit
             Left = 0
-            Top = 126
+            Top = 127
             Width = 615
             Height = 221
             Align = alBottom
@@ -214,7 +214,7 @@ object frmObjectView: TfrmObjectView
             Left = 0
             Top = 246
             Width = 615
-            Height = 101
+            Height = 102
             TabStop = False
             Align = alClient
             Color = clBtnFace
@@ -246,7 +246,7 @@ object frmObjectView: TfrmObjectView
             Left = 0
             Top = 147
             Width = 615
-            Height = 200
+            Height = 201
             TabStop = False
             Align = alClient
             Color = clBtnFace
@@ -281,7 +281,7 @@ object frmObjectView: TfrmObjectView
             Left = 0
             Top = 171
             Width = 615
-            Height = 176
+            Height = 177
             Align = alClient
             Columns = <>
             ColumnClick = False
@@ -508,7 +508,7 @@ object frmObjectView: TfrmObjectView
         Left = 0
         Top = 0
         Width = 623
-        Height = 375
+        Height = 352
         Align = alClient
         Font.Charset = ANSI_CHARSET
         Font.Color = clWindowText
@@ -522,6 +522,24 @@ object frmObjectView: TfrmObjectView
         TabOrder = 0
         WordWrap = False
       end
+      object Panel6: TPanel
+        Left = 0
+        Top = 352
+        Width = 623
+        Height = 24
+        Align = alBottom
+        BevelOuter = bvNone
+        TabOrder = 1
+        object cbExtractData: TCheckBox
+          Left = 4
+          Top = 3
+          Width = 105
+          Height = 17
+          Caption = 'Extract table data'
+          TabOrder = 0
+          OnClick = cbExtractDataClick
+        end
+      end
     end
     object tabPermissions: TTabSheet
       Caption = 'Permissions'
@@ -530,7 +548,7 @@ object frmObjectView: TfrmObjectView
         Left = 0
         Top = 0
         Width = 623
-        Height = 334
+        Height = 335
         Align = alClient
         Columns = <
           item
@@ -581,7 +599,7 @@ object frmObjectView: TfrmObjectView
       end
       object Panel1: TPanel
         Left = 0
-        Top = 334
+        Top = 335
         Width = 623
         Height = 41
         Align = alBottom
@@ -622,7 +640,7 @@ object frmObjectView: TfrmObjectView
         Left = 0
         Top = 0
         Width = 623
-        Height = 351
+        Height = 349
         Align = alClient
         DataSource = dbgDataSource
         TabOrder = 0
@@ -635,17 +653,44 @@ object frmObjectView: TfrmObjectView
         OnDrawColumnCell = dbgDataDrawColumnCell
         OnEditButtonClick = dbgDataEditButtonClick
       end
-      object DBNavigator1: TDBNavigator
+      object Panel3: TPanel
         Left = 0
-        Top = 351
+        Top = 349
         Width = 623
-        Height = 25
-        DataSource = dbgDataSource
+        Height = 27
         Align = alBottom
-        Flat = True
-        ParentShowHint = False
-        ShowHint = True
+        BevelOuter = bvNone
         TabOrder = 1
+        object DBNavigator1: TDBNavigator
+          Left = 0
+          Top = 0
+          Width = 502
+          Height = 27
+          DataSource = dbgDataSource
+          Align = alClient
+          Flat = True
+          ParentShowHint = False
+          ShowHint = True
+          TabOrder = 0
+        end
+        object Panel4: TPanel
+          Left = 502
+          Top = 0
+          Width = 121
+          Height = 27
+          Align = alRight
+          BevelOuter = bvNone
+          TabOrder = 1
+          object sbCommitRefresh: TSpeedButton
+            Left = 4
+            Top = 2
+            Width = 113
+            Height = 25
+            Caption = 'Commit && Refresh'
+            Flat = True
+            OnClick = sbCommitRefreshClick
+          end
+        end
       end
     end
     object tabDependencies: TTabSheet
@@ -686,7 +731,7 @@ object frmObjectView: TfrmObjectView
         Left = 0
         Top = 41
         Width = 623
-        Height = 334
+        Height = 335
         Align = alClient
         BevelOuter = bvNone
         Caption = 'pnlDependents'
@@ -695,7 +740,7 @@ object frmObjectView: TfrmObjectView
           Left = 0
           Top = 0
           Width = 623
-          Height = 334
+          Height = 335
           Align = alClient
           Images = frmMain.imgTreeview
           Indent = 23
@@ -707,7 +752,7 @@ object frmObjectView: TfrmObjectView
         Left = 0
         Top = 41
         Width = 623
-        Height = 334
+        Height = 335
         Align = alClient
         BevelOuter = bvNone
         TabOrder = 2
@@ -715,7 +760,7 @@ object frmObjectView: TfrmObjectView
           Left = 0
           Top = 0
           Width = 623
-          Height = 334
+          Height = 335
           Align = alClient
           Images = frmMain.imgTreeview
           Indent = 23

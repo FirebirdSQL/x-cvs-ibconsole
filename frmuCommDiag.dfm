@@ -248,7 +248,7 @@ object frmCommDiag: TfrmCommDiag
           Top = 37
           Width = 175
           Height = 21
-          ItemHeight = 13
+          ItemHeight = 0
           TabOrder = 0
         end
       end
@@ -294,7 +294,7 @@ object frmCommDiag: TfrmCommDiag
           Top = 24
           Width = 185
           Height = 21
-          ItemHeight = 13
+          ItemHeight = 0
           TabOrder = 0
         end
       end
@@ -330,7 +330,7 @@ object frmCommDiag: TfrmCommDiag
           Top = 24
           Width = 185
           Height = 21
-          ItemHeight = 13
+          ItemHeight = 0
           TabOrder = 0
         end
       end

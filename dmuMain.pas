@@ -677,7 +677,7 @@ begin
       lSQLStr := Format('%s WHERE RDB$SYSTEM_FLAG <> 1 OR RDB$SYSTEM_FLAG is NULL',[lSQLStr]);
       end;
 
-      lSQLStr := Format('%s ORDER BY RDB$GENERATOR_ID',[lSQLStr]);
+      lSQLStr := Format('%s ORDER BY RDB$GENERATOR_NAME',[lSQLStr]);
       SQL.Clear;
       SQL.Add(lSQLStr);
       try
@@ -1981,7 +1981,7 @@ begin
   if not ShowSystem then
     lSQLStr := Format('%s Where RDB$SYSTEM_FLAG <> 1 OR RDB$SYSTEM_FLAG is NULL',[lSQLStr]);
     
-  lSqlStr := Format('%s order by rdb$generator_id', [lSqlStr]);
+  lSqlStr := Format('%s order by rdb$generator_name', [lSqlStr]);
 
   lQry := nil;
   try

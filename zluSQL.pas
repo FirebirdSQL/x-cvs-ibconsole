@@ -13,7 +13,7 @@
  * 
  * Portions created by Inprise Corporation are Copyright (C) Inprise
  * Corporation. All Rights Reserved.
- * 
+ *
  * Contributor(s): ______________________________________.
 }
 
@@ -22,7 +22,7 @@ unit zluSQL;
 interface
 
 uses
-  Classes, Windows, SysUtils, Registry, Dialogs, Forms, Messages, Controls,
+  Classes, Windows, SysUtils, Dialogs, Forms, Messages, Controls,
   IBDatabase, IBCustomDataset, IBDatabaseInfo;
 
 type
@@ -728,7 +728,8 @@ var
   show_Count,
   show_Echo,
   show_time,
-  Output: boolean;
+  Output,
+  CreatDDLTrx, CreateTmpTrx: boolean;
 
   ClientDialect: Integer;
   CharSet: String;
@@ -747,529 +748,474 @@ begin
   TmpTransaction := nil;
   Data := TStringList.Create;
   Source := TStringList.Create;
-  Source.AddStrings (FQuery);
+  CreatDDLTrx := true;
+  CreateTmpTrx := true;
 
   (* Defaults *)
-  ClientDialect := gAppSettings[DEFAULT_DIALECT].Setting;
-  CharSet := gAppSettings[CHARACTER_SET].Setting;
-
-  if not ParseSQL (Source, Data, gAppSettings[ISQL_TERMINATOR].Setting) then
-    raise EISQLException.Create (ERR_ISQL_ERROR, '', eeParse, 'Unable to parse script');
-
-  FStatements := Data.Count - 1;
-  Source.Free;
-
   try
-    (* If the database was already assigned and attached to,
-     * then create the components for the database
+    ClientDialect := gAppSettings[DEFAULT_DIALECT].Setting;
+    CharSet := gAppSettings[CHARACTER_SET].Setting;
+
+    Source.AddStrings(FQuery);
+    if not ParseSQL (Source, Data, gAppSettings[ISQL_TERMINATOR].Setting) then
+      raise EISQLException.Create (ERR_ISQL_ERROR, '', eeParse, 'Unable to parse script');
+
+    FStatements := Data.Count - 1;
+
+    try
+      (* If the database was already assigned and attached to,
+       * then create the components for the database
+       *)
+      if Assigned(Database.Handle) then
+      begin
+  //      QryTransaction := Database.Transactions[FDefaultTransIDX];
+        DDLTransaction := Database.Transactions[FDDLTransIDX];
+        CreatDDLTrx := false;
+        TmpTransaction := TIBTransaction.Create (nil);
+
+        IBQuery := TIBSQL.Create (nil);
+        DDLQuery:= TIBSQL.Create (nil);
+        TmpQuery:= TIBSQL.Create (nil);
+
+        TmpTransaction.DefaultDatabase := FDatabase;
+
+        with IBQuery do
+        begin
+          Database := FDatabase;
+          Transaction := Database.Transactions[FDefaultTransIDX];
+          ParamCheck := false;
+        end;
+
+        with TmpQuery do
+        begin
+          Database := FDatabase;
+          Transaction := TmpTransaction;
+          ParamCheck := false;
+        end;
+
+        with DDLQuery do
+        begin
+          Database := FDatabase;
+          Transaction := Database.Transactions[FDDLTransIDX];
+          ParamCheck := false;
+        end;
+      end;
+    except on E: Exception do
+    begin
+      raise EISQLException.Create (ERR_ISQL_ERROR, '', eeInitialization, E.Message);
+    end;
+    end;
+
+    (* Go through the String list excecuting the information line by line.
+     * Each statement is executed against the currently connected database
+     * and server (if there is one).
      *)
-    if Assigned(Database.Handle) then
+    for lCnt := 0 to Data.Count-1 do
     begin
-//      QryTransaction := Database.Transactions[FDefaultTransIDX];
-      DDLTransaction := Database.Transactions[FDDLTransIDX];
-      TmpTransaction := TIBTransaction.Create (nil);
+      if FCanceled then
+        break;
 
-      IBQuery := TIBSQL.Create (nil);
-      DDLQuery:= TIBSQL.Create (nil);
-      TmpQuery:= TIBSQL.Create (nil);
+      Application.ProcessMessages;
+  //    dlgProgress.DoStep;
 
-      TmpTransaction.DefaultDatabase := FDatabase;
+      if Assigned(FProgressEvent) then
+        OnQueryProgress(self);
 
-      with IBQuery do
-      begin
-        Database := FDatabase;
-        Transaction := Database.Transactions[FDefaultTransIDX];
-        ParamCheck := false;
-      end;
+      (* Is this an ISQL Command? *)
+      IsqlAction := IsISQLCommand (Data.Strings[lCnt], IsqlValue);
 
-      with TmpQuery do
-      begin
-        Database := FDatabase;
-        Transaction := TmpTransaction;
-        ParamCheck := false;
-      end;
-
-      with DDLQuery do
-      begin
-        Database := FDatabase;
-        Transaction := Database.Transactions[FDDLTransIDX];
-        ParamCheck := false;
-      end;
-    end;
-  except on E: Exception do
-  begin
-    raise EISQLException.Create (ERR_ISQL_ERROR, '', eeInitialization, E.Message);
-  end;
-  end;
-
-  (* Go through the String list excecuting the information line by line.
-   * Each statement is executed against the currently connected database
-   * and server (if there is one).
-   *)
-  for lCnt := 0 to Data.Count-1 do
-  begin
-    if FCanceled then
-      break;
-
-    Application.ProcessMessages;
-//    dlgProgress.DoStep;
-
-    if Assigned(FProgressEvent) then
-      OnQueryProgress(self);
-
-    (* Is this an ISQL Command? *)
-    IsqlAction := IsISQLCommand (Data.Strings[lCnt], IsqlValue);
-
-    case ISQlAction of
-      actInput:
-      begin
-        try
-          AssignFile(InputFile, IsqlValue);
-          Reset (InputFile);
-          NewSource := TStringList.Create;
-          while not SeekEof(InputFile) do
-          begin
-            Readln(InputFile, Tmp);
-            NewSource.Append(Tmp);
-          end;
-        except on E: Exception do
-          raise EISQLException.Create (ERR_FOPEN, ISQLValue, eeFopen, E.Message);
-        end;
-        ISQLObj := TIBSQLObj.Create (self);
-        with ISQLObj do
+      case ISQlAction of
+        actInput:
         begin
-          DefaultTransIDX := FDefaultTransIDX;
-          DDLTransIDX := FDDLTransIDX;
-          AutoDDL := FAutoDDL;
-          Query := NewSource;
-          Database := Self.FDatabase;
-          DataSet := Self.FDataSet;
-          OnDataOutput := Self.FDataOutput;
-          OnISQLEvent := Self.OnISQLEvent;
-          DoIsql;
-          Free;
-          NewSource.Free;          
-        end;
-        Continue;
-      end;
-      actOutput:
-      begin
-        Output := True;
-      end;
-      actCount:
-      begin
-        show_Count := ISQLValue;
-        continue;
-      end;
-
-      actEcho:
-      begin
-        show_Echo := ISQLValue;
-        continue;
-      end;
-
-      actList:
-      begin
-        show_List := ISQLValue;
-        continue;
-      end;
-
-      actNames:
-      begin
-        Charset := ISQLValue;
-        continue;
-      end;
-
-      actPlan:
-      begin
-        show_Plan := ISQLValue;
-        continue;
-      end;
-
-      actStats:
-      begin
-        show_Stats := ISQLValue;
-        continue;
-      end;
-
-      actTime:
-      begin
-        show_time := ISQLValue;
-        continue;
-      end;
-
-      actDialect:
-      begin
-        ClientDialect := ISQLValue;
-        if Assigned (Database) then
-        try
-          Database.SQLDialect := ClientDialect;
-          if Assigned (OnISQLEvent) then
-            case ClientDialect of
-              1: OnISQLEvent (evntDialect, seDialect1, ClientDialect, Database);
-              2: OnISQLEvent (evntDialect, seDialect2, ClientDialect, Database);
-              3: OnISQLEvent (evntDialect, seDialect3, ClientDialect, Database);
-            end;
-        except
-          on E: Exception do
-          begin
-            raise EISQLException.Create (ERR_ISQL_ERROR, IntToStr(ClientDialect),
-                    eeInvDialect, E.Message);
-          end;
-        end;
-        continue;
-      end;
-
-      actAutoDDL:
-      begin
-        FAutoDDL := ISQLValue;
-        if Assigned (OnISQLEvent) then
-          OnISQLEvent (evntISQL, seAutoDDL, FAutoDDL, Database);
-
-        continue;
-      end;
-
-      actUnSup:
-        Continue;
-//        raise EISQLException.Create (ERR_ISQL_ERROR, '', eeUnsupt, Data.Strings[lCnt]);
-    end;
-    (* Does this line drop a database *)
-    if (Pos ('DROP DATABASE', AnsiUpperCase(Data.Strings[lCnt])) = 1) then
-    begin
-      FDatabase.DropDatabase;
-      if Assigned (OnISQLEvent) then
-        OnISQLEvent (evntDrop, seDatabase, FDatabase.DatabaseName, Database);
-      continue;
-    end;
-
-    (* Does this line create a database *)
-    if (Pos ('CREATE DATABASE', AnsiUpperCase(Data.Strings[lCnt])) = 1) or
-       (Pos ('CREATE SCHEMA', AnsiUpperCase(Data.Strings[lCnt])) = 1) then
-    begin
-      if not ParseDBCreate (Data.Strings[lCnt], DBName, Params) then
-        raise EISQLException.Create (ERR_ISQL_ERROR, '', eeParse, 'An error occured parsing CREATE statement.')
-      else
-      begin
-        try
           try
-            FDatabase.CheckInactive;
-          except
-            on E: Exception do
+            AssignFile(InputFile, IsqlValue);
+            Reset (InputFile);
+            NewSource := TStringList.Create;
+            while not SeekEof(InputFile) do
             begin
-              if FDatabase.Transactions[FDefaultTransIDX].InTransaction then
-                raise EISQLException.Create (ERR_ISQL_ERROR, DBName, eeConnect,
-                  E.Message+#13#10'Commit or Rollback the current transaction')
-              else
-                FDatabase.Close;
+              Readln(InputFile, Tmp);
+              NewSource.Append(Tmp);
             end;
-          end;
-
-          FDatabase.DatabaseName := DBName;
-          FDatabase.SQLDialect := ClientDialect;
-          FDatabase.Params.Text := Params;
-
-          FDatabase.LoginPrompt := false;
-          FDatabase.CreateDatabase;
-
-          QryTransaction := TIBTransaction.Create (nil);
-          DDLTransaction := TIBTransaction.Create (nil);
-          TmpTransaction := TIBTransaction.Create (nil);
-
-          FDefaultTransIDX := FDatabase.AddTransaction (QryTransaction);
-          FDDLTransIDX := FDatabase.AddTransaction (DDLTransaction);
-          FDatabase.AddTransaction (TmpTransaction);
-
-          QryTransaction.DefaultDatabase := FDatabase;
-          DDLTransaction.DefaultDatabase := FDatabase;
-          TmpTransaction.DefaultDatabase := FDatabase;
-
-          IBQuery := TIBSQL.Create (nil);
-          DDLQuery:= TIBSQL.Create (nil);
-          TmpQuery:= TIBSQL.Create (nil);
-
-          with IBQuery do
-          begin
-            Database := FDatabase;
-            Transaction := QryTransaction;
-            ParamCheck := false;
-          end;
-
-          with TmpQuery do
-          begin
-            Database := FDatabase;
-            Transaction := TmpTransaction;
-            ParamCheck := false;
-          end;
-
-          with DDLQuery do
-          begin
-            Database := FDatabase;
-            Transaction := DDLTransaction;
-            ParamCheck := false;
-          end;
-
-          FDatabase.Open;
-          if Assigned (OnISQLEvent) then
-            OnISQLEvent (evntCreate, seDatabase, DBName, FDatabase);
-        except
-          on E: Exception do
-          raise EISQLException.Create (ERR_ISQL_ERROR, DBName, eeCreate, E.Message);
-        end;
-      end;
-      Continue;
-    end;
-
-    (* Does this line connect to a database *)
-    if Pos ('CONNECT', AnsiUpperCase(Data.Strings[lCnt])) = 1 then
-    begin
-      ParamList := TStringList.Create;
-      if not ParseDBConnect (Data.Strings[lCnt], DBName, ParamList) then
-        raise EISQLException.Create (ERR_ISQL_ERROR, '', eeParse, 'An error occured parsing CONNECT statement.')
-      else
-      begin
-        try
-          try
-            FDatabase.CheckInactive;
-          except
-            on E: Exception do
-            begin
-              if FDatabase.Transactions[FDefaultTransIDX].InTransaction then
-                raise EISQLException.Create (ERR_ISQL_ERROR, DBName, eeConnect,
-                  E.Message+#13#10'Commit or Rollback the current transaction')
-              else
-                FDatabase.Close;
-            end;
-          end;
-          FDatabase.DatabaseName := DBName;
-          if (charset <> '') and (charset <> 'NONE') then
-            ParamList.Add ('lc_ctype='+charset);
-          FDatabase.Params.Text := ParamList.Text;
-          FDatabase.Params.Add(Format('isc_dpb_sql_dialect=%d',[ClientDialect]));
-          ParamList.Free;
-          FDatabase.LoginPrompt := false;
-          FDatabase.SQLDialect := ClientDialect;
-          FDatabase.Open;
-
-          QryTransaction := TIBTransaction.Create (nil);
-          DDLTransaction := TIBTransaction.Create (nil);
-          TmpTransaction := TIBTransaction.Create (nil);
-
-          FDefaultTransIDX := FDatabase.AddTransaction (QryTransaction);
-          FDDLTransIDX := FDatabase.AddTransaction (DDLTransaction);
-          FDatabase.AddTransaction (TmpTransaction);
-
-          IBQuery := TIBSQL.Create (nil);
-          DDLQuery:= TIBSQL.Create (nil);
-          TmpQuery:= TIBSQL.Create (nil);
-
-          QryTransaction.DefaultDatabase := FDatabase;
-          DDLTransaction.DefaultDatabase := FDatabase;
-          TmpTransaction.DefaultDatabase := FDatabase;
-
-          with IBQuery do
-          begin
-            Database := FDatabase;
-
-            if Assigned (FDataset) then
-              Transaction := FDataset.Transaction
-            else
-              Transaction := QryTransaction;
-            ParamCheck := false;
-          end;
-
-          with TmpQuery do
-          begin
-            Database := FDatabase;
-            Transaction := TmpTransaction;
-            ParamCheck := false;
-          end;
-
-          with DDLQuery do
-          begin
-            Database := FDatabase;
-            Transaction := DDLTransaction;
-            ParamCheck := false;
-          end;
-
-          if Assigned (OnISQLEvent) then
-            OnISQLEvent (evntConnect, seDatabase, DBName, FDatabase);
-        except
-          on E: Exception do
-            raise EISQLException.Create (ERR_ISQL_ERROR, DBName, eeConnect, E.Message);
-        end;
-      end;
-      Continue;
-    end;
-
-    (* If it isn't any of the above, then execute the statement *)
-    if not Assigned (IBQuery) then
-      raise EISQLException.Create (ERR_ISQL_ERROR, Data.Strings[lCnt], eeStatement, 'No active connection');
-
-    with IBQuery do
-    begin
-      Close;
-      SQL.Clear;
-      SQL.Add (Data.Strings[lCnt]);
-      TmpQuery.SQL.Clear;
-      TmpQuery.SQL.Add (Data.Strings[lCnt]);
-      (* See if the statement is valid *)
-      with TmpQuery do
-      begin
-        try
-          if TmpTransaction.InTransaction then
-            TmpTransaction.Commit;
-          TmpTransaction.StartTransaction;
-          Prepare;
-          Close;
-        except on E: Exception do
-          begin
-            TmpTransaction.Commit;
-            Close;
-            raise EISQLException.Create (ERR_ISQL_ERROR, Data.Strings[lCnt], eeStatement, E.Message);
-          end;
-        end;
-        TmpTransaction.Commit;
-      end;
-
-      case TmpQuery.SQLType of
-        SQLCommit:
-        begin
-          try
-            if Assigned(Dataset) then
-              Transaction := Dataset.Transaction;
-
-            if Transaction.InTransaction then
-              Transaction.Commit;
-
-            if DDLTransaction.InTransaction then
-              DDLTransaction.Commit;
-
-            if Assigned(OnISQLEvent) then
-              OnISQLEvent (evntTransaction, seUnk, false, Database);
-              
           except on E: Exception do
-            raise EISQLException.Create (ERR_ISQL_ERROR, Data.Strings[lCnt], eeCommit, E.Message);
+            raise EISQLException.Create (ERR_FOPEN, ISQLValue, eeFopen, E.Message);
           end;
-        end;
-
-        SQLRollback:
-        begin
+          ISQLObj := TIBSQLObj.Create (self);
+          with ISQLObj do
           try
-            if Assigned(Dataset) then
-              Transaction := Dataset.Transaction;
-          
-            if Transaction.InTransaction then
-              Transaction.Rollback;
-
-            if DDLTransaction.InTransaction then
-              DDLTransaction.Rollback;
-
-            if Assigned(OnISQLEvent) then
-              OnISQLEvent (evntTransaction, seUnk, false, Database);
-
-          except on E: Exception do
-            raise EISQLException.Create (ERR_ISQL_ERROR, Data.Strings[lCnt], eeRollback, E.Message);
+            DefaultTransIDX := FDefaultTransIDX;
+            DDLTransIDX := FDDLTransIDX;
+            AutoDDL := FAutoDDL;
+            Query := NewSource;
+            Database := Self.FDatabase;
+            DataSet := Self.FDataSet;
+            OnDataOutput := Self.FDataOutput;
+            OnISQLEvent := Self.OnISQLEvent;
+            DoIsql;
+          finally
+            Free;
+            NewSource.Free;          
           end;
+          Continue;
+        end;
+        actOutput:
+        begin
+          Output := True;
+        end;
+        actCount:
+        begin
+          show_Count := ISQLValue;
+          continue;
         end;
 
-        SQLDDL, SQLSetGenerator:
+        actEcho:
         begin
-          (* Use a different IBQuery since DDL can be set to autocommit *)
-          DDLQuery.SQL.Clear;
-          DDLQuery.SQL := SQL;
-          with DDLQuery do begin
-            try
-              if not DDLTransaction.InTransaction then
-                DDLTransaction.StartTransaction;
-              Prepare;
-              ExecQuery;
-              if FAutoDDL then
-                DDLTransaction.Commit;
+          show_Echo := ISQLValue;
+          continue;
+        end;
 
-              if Assigned (OnISQLEvent) then
-              begin
-                GetEvent (DDLQuery.SQL.Strings[0], evnt, sevent);
-                OnISQLEvent (evnt, sEvent, DBName, Database);
+        actList:
+        begin
+          show_List := ISQLValue;
+          continue;
+        end;
+
+        actNames:
+        begin
+          Charset := ISQLValue;
+          continue;
+        end;
+
+        actPlan:
+        begin
+          show_Plan := ISQLValue;
+          continue;
+        end;
+
+        actStats:
+        begin
+          show_Stats := ISQLValue;
+          continue;
+        end;
+
+        actTime:
+        begin
+          show_time := ISQLValue;
+          continue;
+        end;
+
+        actDialect:
+        begin
+          ClientDialect := ISQLValue;
+          if Assigned (Database) then
+          try
+            Database.SQLDialect := ClientDialect;
+            if Assigned (OnISQLEvent) then
+              case ClientDialect of
+                1: OnISQLEvent (evntDialect, seDialect1, ClientDialect, Database);
+                2: OnISQLEvent (evntDialect, seDialect2, ClientDialect, Database);
+                3: OnISQLEvent (evntDialect, seDialect3, ClientDialect, Database);
               end;
-               Close;
-            except on E: Exception do
+          except
+            on E: Exception do
             begin
-              Close;
-              if FAutoDDL then
-                DDLTransaction.Rollback;
-              raise EISQLException.Create (ERR_ISQL_ERROR, Data.Strings[lCnt], eeDDL, E.Message);
-            end;
+              raise EISQLException.Create (ERR_ISQL_ERROR, IntToStr(ClientDialect),
+                      eeInvDialect, E.Message);
             end;
           end;
+          continue;
         end;
 
-        SQLDelete, SQLInsert, SQLUpdate:
+        actAutoDDL:
+        begin
+          FAutoDDL := ISQLValue;
+          if Assigned (OnISQLEvent) then
+            OnISQLEvent (evntISQL, seAutoDDL, FAutoDDL, Database);
+
+          continue;
+        end;
+
+        actUnSup:
+          Continue;
+  //        raise EISQLException.Create (ERR_ISQL_ERROR, '', eeUnsupt, Data.Strings[lCnt]);
+      end;
+      (* Does this line drop a database *)
+      if (Pos ('DROP DATABASE', AnsiUpperCase(Data.Strings[lCnt])) = 1) then
+      begin
+        FDatabase.DropDatabase;
+        if Assigned (OnISQLEvent) then
+          OnISQLEvent (evntDrop, seDatabase, FDatabase.DatabaseName, Database);
+        continue;
+      end;
+
+      (* Does this line create a database *)
+      if (Pos ('CREATE DATABASE', AnsiUpperCase(Data.Strings[lCnt])) = 1) or
+         (Pos ('CREATE SCHEMA', AnsiUpperCase(Data.Strings[lCnt])) = 1) then
+      begin
+        if not ParseDBCreate (Data.Strings[lCnt], DBName, Params) then
+          raise EISQLException.Create (ERR_ISQL_ERROR, '', eeParse, 'An error occured parsing CREATE statement.')
+        else
         begin
           try
-            if Assigned(Dataset) then
-              Transaction := Dataset.Transaction;
-              
-            if not Transaction.InTransaction then
-              Transaction.StartTransaction;
-
-            StartSecs := 0;
-            if FStatsOn then
-            begin
-              FDBInfo.Database := FDatabase;
-              FQueryStats.StartMem := FDBInfo.CurrentMemory;
-              FQueryStats.Query := SQL.Text;
-              StartSecs := TimeStampToMSecs(DateTimeToTimeStamp(Time));
+            try
+              FDatabase.CheckInactive;
+            except
+              on E: Exception do
+              begin
+                if FDatabase.Transactions[FDefaultTransIDX].InTransaction then
+                  raise EISQLException.Create (ERR_ISQL_ERROR, DBName, eeConnect,
+                    E.Message+#13#10'Commit or Rollback the current transaction')
+                else
+                  FDatabase.Close;
+              end;
             end;
 
-            Prepare;
+            FDatabase.DatabaseName := DBName;
+            FDatabase.SQLDialect := ClientDialect;
+            FDatabase.Params.Text := Params;
 
-            if FStatsOn then
+            FDatabase.LoginPrompt := false;
+            FDatabase.CreateDatabase;
+
+            QryTransaction := TIBTransaction.Create (nil);
+            DDLTransaction := TIBTransaction.Create (nil);
+            TmpTransaction := TIBTransaction.Create (nil);
+
+            FDefaultTransIDX := FDatabase.AddTransaction (QryTransaction);
+            FDDLTransIDX := FDatabase.AddTransaction (DDLTransaction);
+            FDatabase.AddTransaction (TmpTransaction);
+
+            QryTransaction.DefaultDatabase := FDatabase;
+            DDLTransaction.DefaultDatabase := FDatabase;
+            TmpTransaction.DefaultDatabase := FDatabase;
+
+            IBQuery := TIBSQL.Create (nil);
+            DDLQuery:= TIBSQL.Create (nil);
+            TmpQuery:= TIBSQL.Create (nil);
+
+            with IBQuery do
             begin
-              EndSecs := TimeStampToMSecs(DateTimeToTimeStamp(Time));
-              TmpTime := TimeStampToDateTime(MSecsToTimeStamp(EndSecs - StartSecs));
-              FQueryStats.TimePrepare := TmpTime;
-              StartSecs := TimeStampToMSecs(DateTimeToTimeStamp(Time));
+              Database := FDatabase;
+              Transaction := QryTransaction;
+              ParamCheck := false;
             end;
 
-            ExecQuery;
-
-            FQueryStats.Plan := Plan;
-            FQueryStats.Rows := IBQuery.RowsAffected;
-
-            if FStatsOn then
+            with TmpQuery do
             begin
-              EndSecs := TimeStampToMSecs(DateTimeToTimeStamp(Time));
-              TmpTime := TimeStampToDateTime(MSecsToTimeStamp(EndSecs - StartSecs));
-              FQueryStats.TimeExecute := TmpTime;
-              FQueryStats.EndMem := FDBInfo.CurrentMemory;
-              FQueryStats.MaxMem := FDBInfo.MaxMemory;
-              FQueryStats.Buffers := FDBInfo.NumBuffers;
-              FQueryStats.Reads := FDBInfo.Reads;
-              FQueryStats.Writes := FDBInfo.Writes;
+              Database := FDatabase;
+              Transaction := TmpTransaction;
+              ParamCheck := false;
+            end;
+
+            with DDLQuery do
+            begin
+              Database := FDatabase;
+              Transaction := DDLTransaction;
+              ParamCheck := false;
+            end;
+
+            FDatabase.Open;
+            if Assigned (OnISQLEvent) then
+              OnISQLEvent (evntCreate, seDatabase, DBName, FDatabase);
+          except
+            on E: Exception do
+            raise EISQLException.Create (ERR_ISQL_ERROR, DBName, eeCreate, E.Message);
+          end;
+        end;
+        Continue;
+      end;
+
+      (* Does this line connect to a database *)
+      if Pos ('CONNECT', AnsiUpperCase(Data.Strings[lCnt])) = 1 then
+      begin
+        ParamList := TStringList.Create;
+        if not ParseDBConnect (Data.Strings[lCnt], DBName, ParamList) then
+          raise EISQLException.Create (ERR_ISQL_ERROR, '', eeParse, 'An error occured parsing CONNECT statement.')
+        else
+        begin
+          try
+            try
+              FDatabase.CheckInactive;
+            except
+              on E: Exception do
+              begin
+                if FDatabase.Transactions[FDefaultTransIDX].InTransaction then
+                  raise EISQLException.Create (ERR_ISQL_ERROR, DBName, eeConnect,
+                    E.Message+#13#10'Commit or Rollback the current transaction')
+                else
+                  FDatabase.Close;
+              end;
+            end;
+            FDatabase.DatabaseName := DBName;
+            if (charset <> '') and (charset <> 'NONE') then
+              ParamList.Add ('lc_ctype='+charset);
+            FDatabase.Params.Text := ParamList.Text;
+            FDatabase.Params.Add(Format('isc_dpb_sql_dialect=%d',[ClientDialect]));
+            ParamList.Free;
+            FDatabase.LoginPrompt := false;
+            FDatabase.SQLDialect := ClientDialect;
+            FDatabase.Open;
+
+            QryTransaction := TIBTransaction.Create (nil);
+            DDLTransaction := TIBTransaction.Create (nil);
+            TmpTransaction := TIBTransaction.Create (nil);
+
+            FDefaultTransIDX := FDatabase.AddTransaction (QryTransaction);
+            FDDLTransIDX := FDatabase.AddTransaction (DDLTransaction);
+            FDatabase.AddTransaction (TmpTransaction);
+
+            IBQuery := TIBSQL.Create (nil);
+            DDLQuery:= TIBSQL.Create (nil);
+            TmpQuery:= TIBSQL.Create (nil);
+
+            QryTransaction.DefaultDatabase := FDatabase;
+            DDLTransaction.DefaultDatabase := FDatabase;
+            TmpTransaction.DefaultDatabase := FDatabase;
+
+            with IBQuery do
+            begin
+              Database := FDatabase;
+
+              if Assigned (FDataset) then
+                Transaction := FDataset.Transaction
+              else
+                Transaction := QryTransaction;
+              ParamCheck := false;
+            end;
+
+            with TmpQuery do
+            begin
+              Database := FDatabase;
+              Transaction := TmpTransaction;
+              ParamCheck := false;
+            end;
+
+            with DDLQuery do
+            begin
+              Database := FDatabase;
+              Transaction := DDLTransaction;
+              ParamCheck := false;
             end;
 
             if Assigned (OnISQLEvent) then
-              OnISQLEvent(evntRows, seUnk, RowsAffected, Database);
-
-            Close;
-          except on E: Exception do
-          begin
-            Close;
-            raise EISQLException.Create (ERR_ISQL_ERROR, Data.Strings[lCnt], eeDML, E.Message);
-          end;
+              OnISQLEvent (evntConnect, seDatabase, DBName, FDatabase);
+          except
+            on E: Exception do
+              raise EISQLException.Create (ERR_ISQL_ERROR, DBName, eeConnect, E.Message);
           end;
         end;
+        Continue;
+      end;
 
-        SQLSelect, SQLSelectForUpdate, SQLExecProcedure:
+      (* If it isn't any of the above, then execute the statement *)
+      if not Assigned (IBQuery) then
+        raise EISQLException.Create (ERR_ISQL_ERROR, Data.Strings[lCnt], eeStatement, 'No active connection');
+
+      with IBQuery do
+      begin
+        Close;
+        SQL.Clear;
+        SQL.Add (Data.Strings[lCnt]);
+        TmpQuery.SQL.Clear;
+        TmpQuery.SQL.Add (Data.Strings[lCnt]);
+        (* See if the statement is valid *)
+        with TmpQuery do
         begin
           try
-            if Assigned (DataSet) then
+            if TmpTransaction.InTransaction then
+              TmpTransaction.Commit;
+            TmpTransaction.StartTransaction;
+            Prepare;
+            Close;
+          except on E: Exception do
             begin
+              TmpTransaction.Commit;
+              Close;
+              raise EISQLException.Create (ERR_ISQL_ERROR, Data.Strings[lCnt], eeStatement, E.Message);
+            end;
+          end;
+          TmpTransaction.Commit;
+        end;
+
+        case TmpQuery.SQLType of
+          SQLCommit:
+          begin
+            try
+              if Assigned(Dataset) then
+                Transaction := Dataset.Transaction;
+
+              if Transaction.InTransaction then
+                Transaction.Commit;
+
+              if DDLTransaction.InTransaction then
+                DDLTransaction.Commit;
+
+              if Assigned(OnISQLEvent) then
+                OnISQLEvent (evntTransaction, seUnk, false, Database);
+              
+            except on E: Exception do
+              raise EISQLException.Create (ERR_ISQL_ERROR, Data.Strings[lCnt], eeCommit, E.Message);
+            end;
+          end;
+
+          SQLRollback:
+          begin
+            try
+              if Assigned(Dataset) then
+                Transaction := Dataset.Transaction;
+          
+              if Transaction.InTransaction then
+                Transaction.Rollback;
+
+              if DDLTransaction.InTransaction then
+                DDLTransaction.Rollback;
+
+              if Assigned(OnISQLEvent) then
+                OnISQLEvent (evntTransaction, seUnk, false, Database);
+
+            except on E: Exception do
+              raise EISQLException.Create (ERR_ISQL_ERROR, Data.Strings[lCnt], eeRollback, E.Message);
+            end;
+          end;
+
+          SQLDDL, SQLSetGenerator:
+          begin
+            (* Use a different IBQuery since DDL can be set to autocommit *)
+            DDLQuery.SQL.Clear;
+            DDLQuery.SQL := SQL;
+            with DDLQuery do begin
+              try
+                if not DDLTransaction.InTransaction then
+                  DDLTransaction.StartTransaction;
+                Prepare;
+                ExecQuery;
+                if FAutoDDL then
+                  DDLTransaction.Commit;
+
+                if Assigned (OnISQLEvent) then
+                begin
+                  GetEvent (DDLQuery.SQL.Strings[0], evnt, sevent);
+                  OnISQLEvent (evnt, sEvent, DBName, Database);
+                end;
+                 Close;
+              except on E: Exception do
+              begin
+                Close;
+                if FAutoDDL then
+                  DDLTransaction.Rollback;
+                raise EISQLException.Create (ERR_ISQL_ERROR, Data.Strings[lCnt], eeDDL, E.Message);
+              end;
+              end;
+            end;
+          end;
+
+          SQLDelete, SQLInsert, SQLUpdate:
+          begin
+            try
+              if Assigned(Dataset) then
+                Transaction := Dataset.Transaction;
+              
               if not Transaction.InTransaction then
                 Transaction.StartTransaction;
-
-              DataSet.Close;
-              DataSet.SelectSQL.Text := SQL.Text;
 
               StartSecs := 0;
               if FStatsOn then
@@ -1280,7 +1226,7 @@ begin
                 StartSecs := TimeStampToMSecs(DateTimeToTimeStamp(Time));
               end;
 
-              DataSet.Prepare;
+              Prepare;
 
               if FStatsOn then
               begin
@@ -1290,10 +1236,14 @@ begin
                 StartSecs := TimeStampToMSecs(DateTimeToTimeStamp(Time));
               end;
 
-              DataSet.Open;
-              DataSet.FetchAll;
-              FQueryStats.Plan := Dataset.QSelect.Plan;
-              FQueryStats.Rows := Dataset.RecordCount;
+              ExecQuery;
+
+              try
+                FQueryStats.Plan := Plan;
+              except
+                FQueryStats.Plan := 'Plan could not be retreived';
+              end;
+              FQueryStats.Rows := IBQuery.RowsAffected;
 
               if FStatsOn then
               begin
@@ -1306,54 +1256,127 @@ begin
                 FQueryStats.Reads := FDBInfo.Reads;
                 FQueryStats.Writes := FDBInfo.Writes;
               end;
-            end
-            else
-            begin
-              if not Transaction.InTransaction then
-                Transaction.StartTransaction;
-              Prepare;
-              ExecQuery;
+
+              if Assigned (OnISQLEvent) then
+                OnISQLEvent(evntRows, seUnk, RowsAffected, Database);
+
               Close;
+            except on E: Exception do
+            begin
+              Close;
+              raise EISQLException.Create (ERR_ISQL_ERROR, Data.Strings[lCnt], eeDML, E.Message);
             end;
-          except
-            on E: Exception do
+            end;
+          end;
+
+          SQLSelect, SQLSelectForUpdate, SQLExecProcedure:
+          begin
+            try
+              if Assigned (DataSet) then
               begin
+                if not Transaction.InTransaction then
+                  Transaction.StartTransaction;
+
+                DataSet.Close;
+                DataSet.SelectSQL.Text := SQL.Text;
+
+                StartSecs := 0;
+                if FStatsOn then
+                begin
+                  FDBInfo.Database := FDatabase;
+                  FQueryStats.StartMem := FDBInfo.CurrentMemory;
+                  FQueryStats.Query := SQL.Text;
+                  StartSecs := TimeStampToMSecs(DateTimeToTimeStamp(Time));
+                end;
+
+                DataSet.Prepare;
+
+                if FStatsOn then
+                begin
+                  EndSecs := TimeStampToMSecs(DateTimeToTimeStamp(Time));
+                  TmpTime := TimeStampToDateTime(MSecsToTimeStamp(EndSecs - StartSecs));
+                  FQueryStats.TimePrepare := TmpTime;
+                  StartSecs := TimeStampToMSecs(DateTimeToTimeStamp(Time));
+                end;
+
+                DataSet.Open;
+//                DataSet.FetchAll;
+                try
+                  FQueryStats.Plan := Dataset.QSelect.Plan;
+                except
+                  FQueryStats.Plan := 'Plan could not be retreived';
+                end;
+
+                FQueryStats.Rows := Dataset.RecordCount;
+
+                if FStatsOn then
+                begin
+                  EndSecs := TimeStampToMSecs(DateTimeToTimeStamp(Time));
+                  TmpTime := TimeStampToDateTime(MSecsToTimeStamp(EndSecs - StartSecs));
+                  FQueryStats.TimeExecute := TmpTime;
+                  FQueryStats.EndMem := FDBInfo.CurrentMemory;
+                  FQueryStats.MaxMem := FDBInfo.MaxMemory;
+                  FQueryStats.Buffers := FDBInfo.NumBuffers;
+                  FQueryStats.Reads := FDBInfo.Reads;
+                  FQueryStats.Writes := FDBInfo.Writes;
+                end;
+              end
+              else
+              begin
+                if not Transaction.InTransaction then
+                  Transaction.StartTransaction;
+                Prepare;
+                ExecQuery;
                 Close;
-                raise EISQLException.Create (ERR_ISQL_ERROR, Data.Strings[lCnt], eeQuery, E.Message);
               end;
+            except
+              on E: Exception do
+                begin
+                  Close;
+                  raise EISQLException.Create (ERR_ISQL_ERROR, Data.Strings[lCnt], eeQuery, E.Message);
+                end;
+            end;
           end;
         end;
       end;
     end;
-  end;
   
-  try
-    with FQueryStats do
-    begin
-      DecodeTime(TimeExecute, Hour, Min, Sec, MSec);
-      FStatistics.Add(Format('Execution Time (hh:mm:ss.ssss)%s%.2d:%.2d:%.2d.%.4d',[DEL, Hour, Min, Sec, MSec]));
-      DecodeTime(TimePrepare, Hour, Min, Sec, MSec);
-      FStatistics.Add(Format('Prepare Time (hh:mm:ss.ssss)%s%.2d:%.2d:%.2d:%.4d',[DEL,Hour, Min, Sec, MSec]));
-      FStatistics.Add(Format('Starting Memory%s%d',[DEL,StartMem]));
-      FStatistics.Add(Format('Current Memory%s%d',[DEL,EndMem]));
-      FStatistics.Add(Format('Delta Memory%s%d',[DEL,EndMem-StartMem]));
-      FStatistics.Add(Format('Number of Buffers%s%d',[DEL, Buffers]));
-      FStatistics.Add(Format('Reads%s%d',[DEL,Reads]));
-      FStatistics.Add(Format('Writes%s%d',[DEL,Writes]));
-      if Length(Plan) > 0 then
-        FStatistics.Add(Format('Plan%s%s',[DEL, Plan]))
-      else
-        FStatistics.Add(Format('Plan%s%s',[DEL, 'Not Available']));
-      FStatistics.Add(Format('Records Fetched%s%d',[DEL, Rows]));
+    try
+      with FQueryStats do
+      begin
+        DecodeTime(TimeExecute, Hour, Min, Sec, MSec);
+        FStatistics.Add(Format('Execution Time (hh:mm:ss.ssss)%s%.2d:%.2d:%.2d.%.4d',[DEL, Hour, Min, Sec, MSec]));
+        DecodeTime(TimePrepare, Hour, Min, Sec, MSec);
+        FStatistics.Add(Format('Prepare Time (hh:mm:ss.ssss)%s%.2d:%.2d:%.2d:%.4d',[DEL,Hour, Min, Sec, MSec]));
+        FStatistics.Add(Format('Starting Memory%s%d',[DEL,StartMem]));
+        FStatistics.Add(Format('Current Memory%s%d',[DEL,EndMem]));
+        FStatistics.Add(Format('Delta Memory%s%d',[DEL,EndMem-StartMem]));
+        FStatistics.Add(Format('Number of Buffers%s%d',[DEL, Buffers]));
+        FStatistics.Add(Format('Reads%s%d',[DEL,Reads]));
+        FStatistics.Add(Format('Writes%s%d',[DEL,Writes]));
+        if Length(Plan) > 0 then
+          FStatistics.Add(Format('Plan%s%s',[DEL, Plan]))
+        else
+          FStatistics.Add(Format('Plan%s%s',[DEL, 'Not Available']));
+        FStatistics.Add(Format('Records Fetched%s%d',[DEL, Rows]));
+      end;
+      FDatabase.RemoveTransaction (FDatabase.FindTransaction(TmpTransaction));
+    except
+    on E: Exception do
+      begin
+        raise EISQLException.Create (ERR_ISQL_ERROR, '', eeFree, E.Message);
+      end;
     end;
+  finally
+    Data.Free;
+    Source.Free;
+    TmpQuery.Free;
+    DDLQuery.Free;
     IBQuery.Free;
-    FDatabase.RemoveTransaction (FDatabase.FindTransaction(TmpTransaction));
-    TmpTransaction.Free;
-  except
-  on E: Exception do
-    begin
-      raise EISQLException.Create (ERR_ISQL_ERROR, '', eeFree, E.Message);
-    end;
+    if CreatDDLTrx then
+      DDLTransaction.Free;
+    if CreateTmpTrx then
+      TmpTransaction.Free;
   end;
 end;
 

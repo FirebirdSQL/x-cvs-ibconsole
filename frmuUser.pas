@@ -172,7 +172,7 @@ begin
     if lSecurityService.Active = true then
     begin
       // create an instance of the user info form
-      frmUserInfo := TfrmUserInfo.Create(Application);
+      frmUserInfo := TfrmUserInfo.Create(Application.MainForm);
       try
         frmUserInfo.FSecurityService := lSecurityService;
         frmUserInfo.FCurrSelServer := CurrSelServer;

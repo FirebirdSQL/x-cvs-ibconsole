@@ -117,7 +117,7 @@ var
   lReconnect    : Boolean;
 begin
   // create form and config service objects
-  frmDBShutdown := TfrmDBShutdown.Create(Application);
+  frmDBShutdown := TfrmDBShutdown.Create(Application.MainForm);
   lConfig := TIBConfigService.Create(Nil);
   lReconnect := False;
 

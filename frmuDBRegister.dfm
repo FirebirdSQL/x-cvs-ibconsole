@@ -5,7 +5,7 @@ object frmDBRegister: TfrmDBRegister
   BorderIcons = [biSystemMenu, biHelp]
   BorderStyle = bsSingle
   Caption = 'Register Database and Connect'
-  ClientHeight = 448
+  ClientHeight = 458
   ClientWidth = 384
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -114,12 +114,12 @@ object frmDBRegister: TfrmDBRegister
     Left = 15
     Top = 229
     Width = 355
-    Height = 172
+    Height = 188
     Caption = ' Login Information '
     TabOrder = 2
     object lblUsername: TLabel
       Left = 15
-      Top = 30
+      Top = 34
       Width = 75
       Height = 16
       AutoSize = False
@@ -128,7 +128,7 @@ object frmDBRegister: TfrmDBRegister
     end
     object lblPassword: TLabel
       Left = 15
-      Top = 66
+      Top = 70
       Width = 75
       Height = 16
       AutoSize = False
@@ -137,35 +137,43 @@ object frmDBRegister: TfrmDBRegister
     end
     object lblRole: TLabel
       Left = 15
-      Top = 103
+      Top = 107
       Width = 75
       Height = 16
       AutoSize = False
       Caption = '&Role:'
       FocusControl = edtRole
     end
+    object Label2: TLabel
+      Left = 14
+      Top = 163
+      Width = 105
+      Height = 13
+      Caption = 'Default Character  &Set'
+      FocusControl = cbCharacterSet
+    end
     object edtUsername: TEdit
-      Left = 96
+      Left = 128
       Top = 30
-      Width = 245
+      Width = 213
       Height = 21
       CharCase = ecUpperCase
       MaxLength = 31
       TabOrder = 0
     end
     object edtPassword: TEdit
-      Left = 96
+      Left = 128
       Top = 66
-      Width = 245
+      Width = 213
       Height = 21
       MaxLength = 32
       PasswordChar = '*'
       TabOrder = 1
     end
     object edtRole: TEdit
-      Left = 96
+      Left = 128
       Top = 103
-      Width = 245
+      Width = 213
       Height = 21
       MaxLength = 31
       TabOrder = 2
@@ -180,10 +188,45 @@ object frmDBRegister: TfrmDBRegister
       Enabled = False
       TabOrder = 3
     end
+    object cbCharacterSet: TComboBox
+      Left = 128
+      Top = 156
+      Width = 212
+      Height = 21
+      Style = csDropDownList
+      ItemHeight = 13
+      TabOrder = 4
+      Items.Strings = (
+        'None'
+        'ASCII'
+        'BIG_5'
+        'CYRL'
+        'DOS437'
+        'DOS850'
+        'DOS852'
+        'DOS857'
+        'DOS860'
+        'DOS861'
+        'DOS863'
+        'DOS865'
+        'EUCJ_0208'
+        'GB_2312'
+        'ISO8859_1'
+        'KSC_5601'
+        'NEXT'
+        'OCTETS'
+        'SJIS_0208'
+        'UNICODE_FSS'
+        'WIN1250'
+        'WIN1251'
+        'WIN1252'
+        'WIN1253'
+        'WIN1254')
+    end
   end
   object btnOK: TButton
     Left = 221
-    Top = 410
+    Top = 426
     Width = 75
     Height = 25
     Caption = '&OK'
@@ -193,7 +236,7 @@ object frmDBRegister: TfrmDBRegister
   end
   object btnCancel: TButton
     Left = 302
-    Top = 410
+    Top = 426
     Width = 75
     Height = 25
     Caption = '&Cancel'

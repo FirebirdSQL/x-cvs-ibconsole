@@ -1,10 +1,28 @@
+{
+ * The contents of this file are subject to the InterBase Public License
+ * Version 1.0 (the "License"); you may not use this file except in
+ * compliance with the License.
+ *
+ * You may obtain a copy of the License at http://www.Inprise.com/IPL.html.
+ *
+ * Software distributed under the License is distributed on an "AS IS"
+ * basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. See
+ * the License for the specific language governing rights and limitations
+ * under the License.  The Original Code was created by Inprise
+ * Corporation and its predecessors.
+ *
+ * Portions created by Inprise Corporation are Copyright (C) Inprise
+ * Corporation. All Rights Reserved.
+ *
+ * Contributor(s):  Krzysztof Golko.
+}
 unit frmuServerProperties;
 
 interface
 
 uses
   Forms, ExtCtrls, StdCtrls, Classes, Controls, SysUtils, zluibcClasses,
-  ComCtrls, Graphics, Registry, IBServices, frmuMessage, IB, Windows,
+  ComCtrls, Graphics, IBServices, frmuMessage, IB, Windows,
   Messages, zluContextHelp, frmuDlgClass;
 
 type
@@ -69,7 +87,8 @@ function EditServerProperties(const CurrSelServer: TibcServerNode): integer;
 implementation
 
 uses
-  zluGlobal, frmuMain, IBDatabase, frmuDBConnections, IBHeader, IBErrorCodes;
+  zluGlobal, frmuMain, IBDatabase, frmuDBConnections, IBHeader, IBErrorCodes,
+  zluPersistent;
 
 {$R *.DFM}
 
@@ -132,69 +151,36 @@ begin
   Result := WinHelp(WindowHandle,CONTEXT_HELP_FILE,HELP_CONTEXT,SERVER_PROPERTIES);
 end;
 
-{****************************************************************
-*
-*  b t n A p p l y C l i c k
-*
-****************************************************************
-*  Author: The Client Server Factory Inc.
-*  Date:   April 28, 1999
-*
-*  Input: ignored
-*
-*  Description: Sets the modal result of the form to mrOK
-*               if all user entered values are valid.
-*
-*****************************************************************
-* Revisions:
-*
-*****************************************************************}
 procedure TfrmServerProperties.btnApplyClick(Sender: TObject);
 var
-  lRegistry : TRegistry;
   ServerActive: boolean;
+  sProps: TIbcServerProps;
 begin
-  lRegistry := TRegistry.Create;
   try
     // save alias and database file information
     Screen.Cursor := crHourGlass;
     ServerActive := FAssignedServer.Server.Active;
     if FAssignedServer.Server.Active then
       FAssignedServer.Server.Active := false;
-    if lRegistry.OpenKey(Format('%s%s',[gRegServersKey,FAssignedServer.NodeName]),false) then
-    begin
-      case cboProtocol.ItemIndex of
-        0:
-        begin
-          FAssignedServer.Server.Protocol := TCP;
-          lRegistry.WriteInteger('Protocol',0);
-        end;
-        1:
-        begin
-          FAssignedServer.Server.Protocol := NamedPipe;
-          lRegistry.WriteInteger('Protocol',1);
-        end;
-        2:
-        begin
-          FAssignedServer.Server.Protocol := SPX;
-          lRegistry.WriteInteger('Protocol',2);
-        end;
-      end;
-      FAssignedServer.ServerName := edtHostName.Text;
-      FAssignedServer.Server.ServerName := edtHostName.Text;
-      lRegistry.WriteString('ServerName', edtHostName.Text);
-      FAssignedServer.Description := edtDescription.Text;
-      lRegistry.WriteString('Description', edtDescription.Text);
-      lRegistry.CloseKey();
-      lRegistry.MoveKey(Format('%s%s',[gRegServersKey,FAssignedServer.NodeName]),
-        Format('%s%s',[gRegServersKey,edtAliasName.Text]), true);
-      FAssignedServer.NodeName := edtAliasName.Text;
-
-      if ServerActive then
-        FAssignedServer.Server.Active := true;
+    PersistentInfo.GetServerProps(FAssignedServer.NodeName, sProps);
+    case cboProtocol.ItemIndex of
+      0: sProps.Protocol := TCP;
+      1: sProps.Protocol := NamedPipe;
+      2: sProps.Protocol := SPX;
     end;
+    sProps.ServerName := edtHostName.Text;
+    sProps.Description := edtDescription.Text;
+    PersistentInfo.StoreServerProps(FAssignedServer.NodeName, sProps);
+
+    if FAssignedServer.NodeName <> edtAliasName.Text then
+      PersistentInfo.RenameServerAlias(FAssignedServer.NodeName, edtAliasName.Text);
+
+    FAssignedServer.Server.Protocol := sProps.Protocol;
+    FAssignedServer.ServerName := sProps.ServerName;
+    FAssignedServer.Server.ServerName := sProps.ServerName;
+    FAssignedServer.Description := sProps.Description;
+
   finally
-    lRegistry.Free;
     Screen.Cursor := crDefault;
   end;
 end;
@@ -455,6 +441,7 @@ var
 begin
   try
     FLicenseDesc.Clear;
+    memCapabilities.Clear;
     if FAssignedServer = nil then
       Exit
     else
@@ -529,7 +516,7 @@ procedure TfrmServerProperties.ShowActivity();
 var
   lDatabase : TIBDatabase;
 begin
-  lDatabase := TIBDatabase.Create(Application);
+  lDatabase := TIBDatabase.Create(Application.MainForm);
   try
     case FAssignedServer.Server.Protocol of
       TCP: lDatabase.DatabaseName := Format('%s:%s',[FAssignedServer.ServerName,lvDatabases.Selected.Caption]);

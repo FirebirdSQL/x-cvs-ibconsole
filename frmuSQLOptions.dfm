@@ -33,7 +33,7 @@ inherited frmSQLOptions: TfrmSQLOptions
     Top = 0
     Width = 309
     Height = 288
-    ActivePage = TabSheet2
+    ActivePage = TabSheet1
     Align = alTop
     TabOrder = 2
     object TabSheet1: TTabSheet
@@ -53,7 +53,6 @@ inherited frmSQLOptions: TfrmSQLOptions
         Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goDrawFocusSelected, goColSizing]
         ScrollBars = ssNone
         TabOrder = 0
-        OnDblClick = sgOptionsDblClick
         OnDrawCell = sgOptionsDrawCell
         OnSelectCell = sgOptionsSelectCell
         ColWidths = (
@@ -76,7 +75,7 @@ inherited frmSQLOptions: TfrmSQLOptions
         Width = 116
         Height = 21
         TabStop = False
-        ItemHeight = 0
+        ItemHeight = 13
         ParentShowHint = False
         ShowHint = False
         TabOrder = 2

@@ -1,6 +1,6 @@
 object dlgWisql: TdlgWisql
-  Left = 315
-  Top = 173
+  Left = 333
+  Top = 199
   ActiveControl = reSqlInput
   AutoScroll = False
   Caption = 'Interactive SQL'
@@ -211,27 +211,31 @@ object dlgWisql: TdlgWisql
       Top = 0
       Action = QueryPrevious
       AutoSize = True
+      DropdownMenu = mnuPrev
+      Style = tbsDropDown
     end
     object ToolButton8: TToolButton
-      Left = 26
+      Left = 39
       Top = 0
       Action = QueryNext
       AutoSize = True
+      DropdownMenu = mnuNext
+      Style = tbsDropDown
     end
     object ToolButton9: TToolButton
-      Left = 52
+      Left = 78
       Top = 0
       Action = QueryExecute
       AutoSize = True
     end
     object ToolButton5: TToolButton
-      Left = 78
+      Left = 104
       Top = 0
       Action = QueryPrepare
       AutoSize = True
     end
     object ToolButton10: TToolButton
-      Left = 104
+      Left = 130
       Top = 0
       Width = 8
       Caption = 'ToolButton10'
@@ -239,19 +243,19 @@ object dlgWisql: TdlgWisql
       Style = tbsSeparator
     end
     object ToolButton2: TToolButton
-      Left = 112
+      Left = 138
       Top = 0
       Action = TransactionCommit
       AutoSize = True
     end
     object ToolButton3: TToolButton
-      Left = 138
+      Left = 164
       Top = 0
       Action = TransactionRollback
       AutoSize = True
     end
     object ToolButton4: TToolButton
-      Left = 164
+      Left = 190
       Top = 0
       Width = 8
       Caption = 'ToolButton4'
@@ -259,19 +263,19 @@ object dlgWisql: TdlgWisql
       Style = tbsSeparator
     end
     object ToolButton11: TToolButton
-      Left = 172
+      Left = 198
       Top = 0
       Action = QueryLoadScript
       AutoSize = True
     end
     object ToolButton12: TToolButton
-      Left = 198
+      Left = 224
       Top = 0
       Action = QuerySaveScript
       AutoSize = True
     end
     object ToolButton13: TToolButton
-      Left = 224
+      Left = 250
       Top = 0
       Width = 8
       Caption = 'ToolButton13'
@@ -279,15 +283,15 @@ object dlgWisql: TdlgWisql
       Style = tbsSeparator
     end
     object ToolButton20: TToolButton
-      Left = 232
+      Left = 258
       Top = 0
       Action = EditFind
       AutoSize = True
     end
   end
   object GridSource: TDataSource
-    Left = 479
-    Top = 91
+    Left = 35
+    Top = 55
   end
   object pmClientDialect: TPopupMenu
     Left = 399
@@ -307,8 +311,8 @@ object dlgWisql: TdlgWisql
   end
   object MainMenu1: TMainMenu
     Images = frmMain.imgToolBarsEnabled
-    Left = 317
-    Top = 79
+    Left = 289
+    Top = 7
     object File1: TMenuItem
       Caption = '&File'
       Hint = 'Close the ISQL window'
@@ -396,6 +400,11 @@ object dlgWisql: TdlgWisql
       object Connect1: TMenuItem
         Action = DatabaseConnectAs
       end
+      object Newconnection1: TMenuItem
+        Caption = 'New connection...'
+        ImageIndex = 7
+        OnClick = Newconnection1Click
+      end
       object Disconnect1: TMenuItem
         Action = DatabaseDisconnect
       end
@@ -436,191 +445,9 @@ object dlgWisql: TdlgWisql
       end
     end
   end
-  object TransactionActions: TActionList
-    Images = frmMain.imgToolBarsEnabled
-    Left = 277
-    Top = 131
-    object TransactionCommit: TAction
-      Tag = 1
-      Caption = '&Commit'
-      Hint = 'Commit Work'
-      ImageIndex = 41
-      OnExecute = TransactionExecute
-    end
-    object TransactionRollback: TAction
-      Caption = '&Rollback'
-      Hint = 'Rollback Work'
-      ImageIndex = 42
-      OnExecute = TransactionExecute
-    end
-  end
-  object DialectActions: TActionList
-    Images = frmMain.imgToolBarsEnabled
-    Left = 360
-    Top = 95
-    object DialectAction1: TAction
-      Tag = 1
-      Caption = 'Dialect &1'
-      OnExecute = DialectChange
-      OnUpdate = DialectUpdate
-    end
-    object DialectAction2: TAction
-      Tag = 2
-      Caption = 'Dialect &2'
-      OnExecute = DialectChange
-      OnUpdate = DialectUpdate
-    end
-    object DialectAction3: TAction
-      Tag = 3
-      Caption = 'Dialect &3'
-      OnExecute = DialectChange
-      OnUpdate = DialectUpdate
-    end
-  end
-  object QueryActions: TActionList
-    Images = frmMain.imgToolBarsEnabled
-    Left = 413
-    Top = 84
-    object QueryPrevious: TAction
-      Caption = '&Previous'
-      Hint = 'Previous Query'
-      ImageIndex = 20
-      ShortCut = 16464
-      OnExecute = QueryPreviousExecute
-      OnUpdate = QueryPreviousUpdate
-    end
-    object QueryNext: TAction
-      Caption = '&Next'
-      Hint = 'Next Query'
-      ImageIndex = 19
-      ShortCut = 16462
-      OnExecute = QueryNextExecute
-      OnUpdate = QueryNextUpdate
-    end
-    object QueryExecute: TAction
-      Caption = '&Execute'
-      Hint = 'Execute Query'
-      ImageIndex = 18
-      ShortCut = 16453
-      OnExecute = QueryExecuteExecute
-      OnUpdate = QueryUpdate
-    end
-    object QueryLoadScript: TAction
-      Caption = '&Load Script'
-      Hint = 'Load SQL Script'
-      ImageIndex = 16
-      OnExecute = QueryLoadScriptExecute
-    end
-    object QuerySaveScript: TAction
-      Caption = '&Save Script'
-      Hint = 'Save Script'
-      ImageIndex = 17
-      OnExecute = QuerySaveScriptExecute
-      OnUpdate = QueryUpdate
-    end
-    object QueryOptions: TAction
-      Caption = 'O&ptions ...'
-      Hint = 'Query Options'
-    end
-    object QuerySaveOutput: TAction
-      Caption = 'Save &Output'
-      Hint = 'Save the query ouput'
-      OnExecute = QuerySaveOutputExecute
-      OnUpdate = QuerySaveOutputUpdate
-    end
-    object QueryPrepare: TAction
-      Caption = '&Prepare'
-      Hint = 'Prepare the current query before execution'
-      ImageIndex = 43
-      OnExecute = QueryPrepareExecute
-      OnUpdate = QueryUpdate
-    end
-  end
   object pmLastFiles: TPopupMenu
     Left = 548
     Top = 81
-  end
-  object FileActions: TActionList
-    Images = frmMain.imgToolBarsEnabled
-    Left = 266
-    Top = 86
-    object FileOptions: TAction
-      Caption = '&Options ...'
-      Hint = 'Show ISQL Options'
-      ImageIndex = 21
-      OnExecute = FileOptionsExecute
-    end
-    object FileClose: TAction
-      Caption = '&Close'
-      Hint = 'Close the ISQL window'
-      ShortCut = 16499
-      OnExecute = FileCloseExecute
-    end
-    object EditFind: TAction
-      Caption = '&Find ...'
-      ImageIndex = 14
-      OnExecute = EditFindExecute
-      OnUpdate = EditFindUpdate
-    end
-    object EditFont: TAction
-      Caption = '&Font ...'
-      ImageIndex = 15
-      OnExecute = EditFontExecute
-    end
-    object EditCopy1: TEditCopy
-      Caption = '&Copy'
-      Hint = 'Copy'
-      ImageIndex = 12
-      ShortCut = 16451
-    end
-    object EditCut1: TEditCut
-      Caption = 'Cu&t'
-      Hint = 'Cut'
-      ImageIndex = 11
-      ShortCut = 16472
-    end
-    object EditPaste1: TEditPaste
-      Caption = '&Paste'
-      Hint = 'Paste'
-      ImageIndex = 13
-      ShortCut = 16470
-    end
-    object EditSelectAll1: TEditSelectAll
-      Caption = 'Select &All'
-    end
-    object EditUndo1: TEditUndo
-      Caption = '&Undo'
-      ImageIndex = 10
-      ShortCut = 32776
-    end
-  end
-  object DatabaseActions: TActionList
-    Images = frmMain.imgToolBarsEnabled
-    Left = 95
-    Top = 97
-    object DatabaseConnectAs: TAction
-      Caption = 'Connect &As ...'
-      ImageIndex = 7
-      OnExecute = Connect1Click
-      OnUpdate = DatabaseConnectAsUpdate
-    end
-    object DatabaseDisconnect: TAction
-      Caption = '&Disconnect'
-      ImageIndex = 8
-      OnExecute = Disconnect1Click
-      OnUpdate = DatabaseDisconnectUpdate
-    end
-    object DatabaseCreate: TAction
-      Caption = '&Create Database ...'
-      ImageIndex = 4
-      OnExecute = Create1Click
-      OnUpdate = DatabaseConnectAsUpdate
-    end
-    object DatabaseDrop: TAction
-      Caption = 'D&rop Database'
-      OnExecute = Drop1Click
-      OnUpdate = DatabaseDisconnectUpdate
-    end
   end
   object pmRichEdit: TPopupMenu
     Left = 160
@@ -652,12 +479,208 @@ object dlgWisql: TdlgWisql
     Font.Style = []
     MinFontSize = 0
     MaxFontSize = 0
-    Left = 24
-    Top = 104
+    Left = 8
+    Top = 80
   end
   object FindDialog1: TFindDialog
     OnFind = FindDialog1Find
-    Left = 52
+    Left = 8
     Top = 106
+  end
+  object actWisql: TActionList
+    Images = frmMain.imgToolBarsEnabled
+    Left = 8
+    Top = 54
+    object TransactionCommit: TAction
+      Tag = 1
+      Category = 'Transaction'
+      Caption = '&Commit'
+      Hint = 'Commit Work'
+      ImageIndex = 41
+      OnExecute = TransactionExecute
+    end
+    object TransactionRollback: TAction
+      Category = 'Transaction'
+      Caption = '&Rollback'
+      Hint = 'Rollback Work'
+      ImageIndex = 42
+      OnExecute = TransactionExecute
+    end
+    object DialectAction1: TAction
+      Tag = 1
+      Category = 'Dialect'
+      Caption = 'Dialect &1'
+      OnExecute = DialectChange
+      OnUpdate = DialectUpdate
+    end
+    object DialectAction2: TAction
+      Tag = 2
+      Category = 'Dialect'
+      Caption = 'Dialect &2'
+      OnExecute = DialectChange
+      OnUpdate = DialectUpdate
+    end
+    object DialectAction3: TAction
+      Tag = 3
+      Category = 'Dialect'
+      Caption = 'Dialect &3'
+      OnExecute = DialectChange
+      OnUpdate = DialectUpdate
+    end
+    object QueryPrevious: TAction
+      Category = 'QueryActions'
+      Caption = '&Previous'
+      Hint = 'Previous Query'
+      ImageIndex = 20
+      ShortCut = 16464
+      OnExecute = QueryPreviousExecute
+      OnUpdate = QueryPreviousUpdate
+    end
+    object QueryNext: TAction
+      Category = 'QueryActions'
+      Caption = '&Next'
+      Hint = 'Next Query'
+      ImageIndex = 19
+      ShortCut = 16462
+      OnExecute = QueryNextExecute
+    end
+    object QueryExecute: TAction
+      Category = 'QueryActions'
+      Caption = '&Execute'
+      Hint = 'Execute Query'
+      ImageIndex = 18
+      ShortCut = 16453
+      OnExecute = QueryExecuteExecute
+      OnUpdate = QueryUpdate
+    end
+    object QueryLoadScript: TAction
+      Category = 'QueryActions'
+      Caption = '&Load Script'
+      Hint = 'Load SQL Script'
+      ImageIndex = 16
+      OnExecute = QueryLoadScriptExecute
+    end
+    object QuerySaveScript: TAction
+      Category = 'QueryActions'
+      Caption = '&Save Script'
+      Hint = 'Save Script'
+      ImageIndex = 17
+      OnExecute = QuerySaveScriptExecute
+      OnUpdate = QueryUpdate
+    end
+    object QueryOptions: TAction
+      Category = 'QueryActions'
+      Caption = 'O&ptions ...'
+      Hint = 'Query Options'
+    end
+    object QuerySaveOutput: TAction
+      Category = 'QueryActions'
+      Caption = 'Save &Output'
+      Hint = 'Save the query ouput'
+      OnExecute = QuerySaveOutputExecute
+      OnUpdate = QuerySaveOutputUpdate
+    end
+    object QueryPrepare: TAction
+      Category = 'QueryActions'
+      Caption = '&Prepare'
+      Hint = 'Prepare the current query before execution'
+      ImageIndex = 43
+      OnExecute = QueryPrepareExecute
+      OnUpdate = QueryUpdate
+    end
+    object FileOptions: TAction
+      Category = 'File'
+      Caption = '&Options ...'
+      Hint = 'Show ISQL Options'
+      ImageIndex = 21
+      OnExecute = FileOptionsExecute
+    end
+    object FileClose: TAction
+      Category = 'File'
+      Caption = '&Close'
+      Hint = 'Close the ISQL window'
+      ShortCut = 16499
+      OnExecute = FileCloseExecute
+    end
+    object EditFind: TAction
+      Category = 'File'
+      Caption = '&Find ...'
+      ImageIndex = 14
+      OnExecute = EditFindExecute
+      OnUpdate = EditFindUpdate
+    end
+    object EditFont: TAction
+      Category = 'File'
+      Caption = '&Font ...'
+      ImageIndex = 15
+      OnExecute = EditFontExecute
+    end
+    object EditCopy1: TEditCopy
+      Category = 'File'
+      Caption = '&Copy'
+      Hint = 'Copy'
+      ImageIndex = 12
+      ShortCut = 16451
+    end
+    object EditCut1: TEditCut
+      Category = 'File'
+      Caption = 'Cu&t'
+      Hint = 'Cut'
+      ImageIndex = 11
+      ShortCut = 16472
+    end
+    object EditPaste1: TEditPaste
+      Category = 'File'
+      Caption = '&Paste'
+      Hint = 'Paste'
+      ImageIndex = 13
+      ShortCut = 16470
+    end
+    object EditSelectAll1: TEditSelectAll
+      Category = 'File'
+      Caption = 'Select &All'
+    end
+    object EditUndo1: TEditUndo
+      Category = 'File'
+      Caption = '&Undo'
+      ImageIndex = 10
+      ShortCut = 32776
+    end
+    object DatabaseConnectAs: TAction
+      Category = 'Database'
+      Caption = 'Connect &As ...'
+      ImageIndex = 7
+      OnExecute = Connect1Click
+      OnUpdate = DatabaseConnectAsUpdate
+    end
+    object DatabaseDisconnect: TAction
+      Category = 'Database'
+      Caption = '&Disconnect'
+      ImageIndex = 8
+      OnExecute = Disconnect1Click
+      OnUpdate = DatabaseDisconnectUpdate
+    end
+    object DatabaseCreate: TAction
+      Category = 'Database'
+      Caption = '&Create Database ...'
+      ImageIndex = 4
+      OnExecute = Create1Click
+      OnUpdate = DatabaseConnectAsUpdate
+    end
+    object DatabaseDrop: TAction
+      Category = 'Database'
+      Caption = 'D&rop Database'
+      OnExecute = Drop1Click
+      OnUpdate = DatabaseDisconnectUpdate
+    end
+  end
+  object mnuPrev: TPopupMenu
+    OnPopup = mnuPrevPopup
+    Top = 2
+  end
+  object mnuNext: TPopupMenu
+    OnPopup = mnuNextPopup
+    Left = 44
+    Top = 2
   end
 end

@@ -26,7 +26,7 @@ type
     Setting: variant;
   end;
 
-  TFontProps = record
+{  TFontProps = record
     FontName: String;
     FontSize: Integer;
     FontColor: TColor;
@@ -34,7 +34,8 @@ type
     FontHeight: Integer;
   end;
 
-  TASCIIChars = set of 0..255;
+  TASCIIChars = set of 0..255; }
+
   TAppSettings = array[0..17] of TAppSetting;
 
 var
@@ -43,9 +44,8 @@ var
   gWinTempPath: String;
   gApplExePath: string;
   gRegServersKey: string;
-  gRegSettingsKey: string;
   gRegToolsKey: string;
-  gAppSettings: TAppSettings;            // initialized in TfrmMain.FormCreate
+  gAppSettings: TAppSettings;
 
 const
   { Transactions }
@@ -285,5 +285,66 @@ const
   TAB_ISQL = 5;
 
 implementation
+
+// kris
+// I propose to put it here, at elast it a better place than before (in frmMain.OnCreate 
+// If TAppSettings become a class, this will be put in a constructor
+procedure InitSettings;
+var
+  i: integer;
+begin
+    { Initialize the application setting defaults }
+  for i := 0 to NUM_SETTINGS-1 do
+  begin
+    gAppSettings[i].Name := SETTINGS[i];
+    case i of
+     {Boolean Settings}
+      SYSTEM_DATA:
+        gAppSettings[i].Setting := false;
+      DEPENDENCIES:
+        gAppSettings[i].Setting := true;
+      USE_DEFAULT_EDITOR:
+        gAppSettings[i].Setting := true;
+      SHOW_QUERY_PLAN:
+        gAppSettings[i].Setting := true;
+      AUTO_COMMIT_DDL:
+        gAppSettings[i].Setting := true;
+      SHOW_STATS:
+        gAppSettings[i].Setting := true;
+      SHOW_LIST:
+        gAppSettings[i].Setting := false;
+      SAVE_ISQL_OUTPUT:
+        gAppSettings[i].Setting := false;
+      UPDATE_ON_CONNECT:
+        gAppSettings[i].Setting := false;
+      UPDATE_ON_CREATE:
+        gAppSettings[i].Setting := false;
+      CLEAR_INPUT:
+        gAppSettings[i].Setting := true;
+
+     {String Settings}
+      CHARACTER_SET:
+        gAppSettings[i].Setting := 'None';
+      BLOB_DISPLAY:
+        gAppSettings[i].Setting := 'Restrict';
+      BLOB_SUBTYPE:
+        gAppSettings[i].Setting := 'Text';
+      ISQL_TERMINATOR:
+        gAppSettings[i].Setting := ';';
+
+    {Integer Settings}
+      COMMIT_ON_EXIT:
+        gAppSettings[i].Setting := 0;
+      VIEW_STYLE:
+        gAppSettings[i].Setting := 3;
+      DEFAULT_DIALECT:
+        gAppSettings[i].Setting := 3;
+    end;
+  end;
+end;
+
+initialization
+
+  InitSettings;
 
 end.

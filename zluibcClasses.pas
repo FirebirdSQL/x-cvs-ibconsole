@@ -51,7 +51,6 @@ type
     FNodeType: word;
     FShowSystem: boolean;
     FObjectList: TStringList;
-  protected
   public
     property NodeID: HTreeItem read FNodeID;
     property NodeName: string read FNodeName write FNodeName;
@@ -61,7 +60,6 @@ type
 
     constructor Create(AOwner: TComponent; const NodeID: HTreeItem; const NodeName: string; const NodeType: word); reintroduce;
     destructor Destroy(); override;
-  published
   end;
 
   TibcServerNode = class(TibcTreeNode)
@@ -76,7 +74,7 @@ type
     FDescription: string;
     FLastAccessed: TDateTime;
     FOutputWindow: TfrmTextViewer;
-  protected
+    FCharacterSet: string;
   public
     property Servername: string read FServername write FServername;
     property UserName: string read FUserName write FUserName;
@@ -88,6 +86,7 @@ type
     property BackupFilesID: HTreeItem read FBackupFilesID write FBackupFilesID;
     property Server: TIBServerProperties read FServer write FServer;
     property OutputWindow: TfrmTextViewer read FOutputWindow;
+    property CharacterSet: string read FCharacterSet write FCharacterSet;
 
     constructor Create(AOwner: TComponent; const NodeID: HTreeItem; const NodeName,ServerName,UserName,Password, Description: string; const Protocol: TProtocol; const LastAccessed: TDateTime; const NodeType: word);
     destructor Destroy(); override;
@@ -95,7 +94,6 @@ type
         const readonly: boolean=true);
     procedure OpenTextViewer (const Service: TIBControlAndQueryService;
         const Title: String; const readonly: boolean=true);
-  published
   end;
 
   TibcDatabaseNode = class(TibcTreeNode)
@@ -129,8 +127,8 @@ type
     FTriggersID: HTreeItem;
 
     FObjectViewer: TFrmObjectView;
+    FCharacterSet: string;
 
-  protected
   public
     property DatabaseFiles: TStringList read FDatabaseFiles write FDatabaseFiles;
     property UserName: string read FUserName write FUserName;
@@ -161,13 +159,13 @@ type
     property TriggersID: HTreeItem read FTriggersID write FTriggersID;
 
     property ObjectViewer: TFrmObjectView read FObjectViewer;
+    property CharacterSet: string read FCharacterSet write FCharacterSet;
 
     constructor Create(AOwner: TComponent; const NodeID: HTreeItem;
       const NodeName: string; const NodeType: word;
       const DatabaseFiles: TStringList; var NewDatabase: TIBDatabase);
     destructor Destroy(); override;
     procedure CreateObjectViewer;
-  published
   end;
 
   TibcBackupAliasNode = class(TibcTreeNode)
@@ -252,6 +250,9 @@ begin
     FDatabase := NewDatabase;
 
   FTransaction := TIBTransaction.Create(AOwner);
+  FTransaction.Params.Add('read_committed');
+  FTransaction.Params.Add('rec_version');
+  FTransaction.Params.Add('nowait');
   FQryTransaction := TIBTransaction.Create(AOwner);
   FDataSet := TIBDataSet.Create (AOwner);
   FQryDataSet := TIBDataSet.Create (AOwner);
@@ -307,7 +308,7 @@ end;
 procedure TibcDatabaseNode.CreateObjectViewer;
 begin
   if not Assigned(FObjectViewer) then
-    FObjectViewer := TfrmObjectView.Create(Application)
+    FObjectViewer := TfrmObjectView.Create(Application.MainForm)
   else
     FObjectViewer.WindowState := wsNormal;
 end;
@@ -346,7 +347,7 @@ procedure TibcServerNode.ShowText(const Data: TStringList;
   const Title: String; const readonly:boolean=true);
 begin
   if not Assigned (FOutputwindow) then
-    FOutputWindow := TfrmTextViewer.Create(Application);
+    FOutputWindow := TfrmTextViewer.Create(Self);
   FOutputWindow.ShowText(Data, Title, Readonly);
 end;
 
@@ -354,7 +355,7 @@ procedure TibcServerNode.OpenTextViewer(const Service: TIBControlAndQueryService
   const Title: String; const readonly:boolean=true);
 begin
   if not Assigned (FOutputwindow) then
-    FOutputWindow := TfrmTextViewer.Create(Application);
+    FOutputWindow := TfrmTextViewer.Create(Application.MainForm);
   FOutputWindow.OpenTextViewer (Service, Title, readonly); 
 end;
 

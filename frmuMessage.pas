@@ -158,7 +158,7 @@ function DisplayMsg(const MsgNo: integer; MsgText: string): boolean;
 var
   frmMessage: TfrmMessage;
 begin
-  frmMessage := TfrmMessage.Create(Application);
+  frmMessage := TfrmMessage.Create(Application.MainForm);
   try
     MsgText := RemoveControlChars(MsgText);
 

@@ -61,7 +61,7 @@ var
   frmModifyAlias: TfrmModifyServerAlias;
 
 begin
-  frmModifyAlias := TfrmModifyServerAlias.Create (Application);
+  frmModifyAlias := TfrmModifyServerAlias.Create (Application.MainForm);
   with frmModifyAlias do begin
     stMessage.Caption := Format ('Error Reading alias %s:'#13#10'%s',[AliasName, ErrMsg]);
     edtAliasName.Text := AliasName;

@@ -115,7 +115,7 @@ var
 
 begin
   lDBStatisticsData := TStringList.Create();
-  lDBStatistics := TIBStatisticalService.Create(Application);
+  lDBStatistics := TIBStatisticalService.Create(Application.MainForm);
   try
     try
       // assign server details
@@ -141,7 +141,7 @@ begin
     // if successfully attached to server
     if lDBStatistics.Active = true then
     begin
-      frmDBStatistics := TfrmDBStatistics.Create(Application);
+      frmDBStatistics := TfrmDBStatistics.Create(Application.MainForm);
       try
         frmDBStatistics.stxDatabaseName.Caption := MinimizeName (CurrSelDatabase.NodeName,
           frmDBStatistics.stxDatabaseName.Canvas,

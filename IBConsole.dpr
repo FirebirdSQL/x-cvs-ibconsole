@@ -45,7 +45,9 @@ uses
   frmuTools in 'frmuTools.pas' {frmTools},
   frmuAddTool in 'frmuAddTool.pas' {frmAddTools},
   frmuDescription in 'frmuDescription.pas' {frmDescription},
-  frmuWindowList in 'frmuWindowList.pas' {dlgWindowList};
+  frmuWindowList in 'frmuWindowList.pas' {dlgWindowList},
+  MemoLists in 'MemoLists.pas',
+  zluPersistent in 'zluPersistent.pas';
 
 {$R *.RES}
 
@@ -62,7 +64,7 @@ begin
     Halt(0);
   end;
   Application.Initialize;
-  frmSplash := TfrmSplash.Create(Application);
+  frmSplash := TfrmSplash.Create(nil);
   frmSplash.Show;
   frmSplash.Update;
   Application.ProcessMessages;

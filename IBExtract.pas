@@ -34,7 +34,7 @@ type
 
   TExtractType =
     (etDomain, etTable, etRole, etTrigger, etForeign,
-     etIndex, etData, etGrant, etCheck);
+     etIndex, etData, etGrant, etCheck, etAlterProc);
 
   TExtractTypes = Set of TExtractType;
 
@@ -62,7 +62,7 @@ type
     procedure ListData(ObjectName : String);
     procedure ListRoles(ObjectName : String = '');
     procedure ListGrants;
-    procedure ListProcs(ProcedureName : String = '');
+    procedure ListProcs(ProcedureName : String = ''; AlterOnly : Boolean = false);
     procedure ListAllTables(flag : Boolean);
     procedure ListTriggers(ObjectName : String = ''; ExtractType : TExtractType = etTrigger);
     procedure ListCheck(ObjectName : String = ''; ExtractType : TExtractType = etCheck);
@@ -532,7 +532,7 @@ begin
           { Catch arrays after printing the type  }
 
           if not qryTables.FieldByName('RDB$DIMENSIONS').IsNull then
-            Column := column + GetArrayField(qryTables.FieldByName('RDB$FIELD_NAME').AsString);
+            Column := column + GetArrayField(qryTables.FieldByName('RDB$FIELD_NAME1').AsString);
 
           if FieldType = blr_blob then
           begin
@@ -893,7 +893,7 @@ end;
 
  	 procname -- Name of procedure to investigate }
 
-procedure TIBExtract.ListProcs(ProcedureName : String);
+procedure TIBExtract.ListProcs(ProcedureName : String; AlterOnly : Boolean);
 resourcestring
   CreateProcedureStr1 = 'CREATE PROCEDURE %s ';
   CreateProcedureStr2 = 'BEGIN EXIT; END %s%s';
@@ -927,26 +927,29 @@ begin
       qryProcedures.SQL.Text := ProcedureNameSQL;
       qryProcedures.Params.ByName('ProcedureName').AsString := ProcedureName;
     end;
-    qryProcedures.ExecQuery;
-    while not qryProcedures.Eof do
+    if not AlterOnly then
     begin
-      if Header then
+      qryProcedures.ExecQuery;
+      while not qryProcedures.Eof do
       begin
-        FMetaData.Add('COMMIT WORK;');
-        FMetaData.Add('SET AUTODDL OFF;');
-        FMetaData.Add(Format('SET TERM %s %s', [ProcTerm, Term]));
-        FMetaData.Add(Format('%s/* Stored procedures */%s', [NEWLINE, NEWLINE]));
-        Header := false;
+        if Header then
+        begin
+          FMetaData.Add('COMMIT WORK;');
+          FMetaData.Add('SET AUTODDL OFF;');
+          FMetaData.Add(Format('SET TERM %s %s', [ProcTerm, Term]));
+          FMetaData.Add(Format('%s/* Stored procedures */%s', [NEWLINE, NEWLINE]));
+          Header := false;
+        end;
+        ProcName := Trim(qryProcedures.FieldByName('RDB$PROCEDURE_NAME').AsString);
+        FMetaData.Add(Format(CreateProcedureStr1, [QuoteIdentifier(FDatabase.SQLDialect,
+           ProcName)]));
+        GetProcedureArgs(ProcName);
+        FMetaData.Add(Format(CreateProcedureStr2, [ProcTerm, NEWLINE]));
+        qryProcedures.Next;
       end;
-      ProcName := Trim(qryProcedures.FieldByName('RDB$PROCEDURE_NAME').AsString);
-      FMetaData.Add(Format(CreateProcedureStr1, [QuoteIdentifier(FDatabase.SQLDialect,
-         ProcName)]));
-      GetProcedureArgs(ProcName);
-      FMetaData.Add(Format(CreateProcedureStr2, [ProcTerm, NEWLINE]));
-      qryProcedures.Next;
+      qryProcedures.Close;
     end;
 
-    qryProcedures.Close;
     qryProcedures.ExecQuery;
     while not qryProcedures.Eof do
     begin
@@ -956,9 +959,16 @@ begin
          QuoteIdentifier(FDatabase.SQLDialect, ProcName)]));
       GetProcedureArgs(ProcName);
 
+      FMetaData.AddStrings(SList);
+      SList.Clear;
       if not qryProcedures.FieldByName('RDB$PROCEDURE_SOURCE').IsNull then
-        SList.Text := SList.Text + qryProcedures.FieldByName('RDB$PROCEDURE_SOURCE').AsString;
-      SList.Add(Format(' %s%s', [ProcTerm, NEWLINE]));
+      begin
+        SList.Text := qryProcedures.FieldByName('RDB$PROCEDURE_SOURCE').AsString;
+        while (Slist.Count > 0) and (Trim(SList[0]) = '') do
+          SList.Delete(0);
+      end;
+      if not AlterOnly then
+        SList.Add(Format(' %s%s', [ProcTerm, NEWLINE]));
       FMetaData.AddStrings(SList);
       qryProcedures.Next;
     end;
@@ -1556,7 +1566,7 @@ var
       Result := Result + GetCharacterSets(qryDomains.FieldByName('RDB$CHARACTER_SET_ID').AsInteger,
          0, FALSE);
     if not qryDomains.FieldByName('RDB$DIMENSIONS').IsNull then
-      Result := GetArrayField(FieldName);
+      Result := Result + GetArrayField(FieldName);
 
     if not qryDomains.FieldByName('RDB$DEFAULT_SOURCE').IsNull then
       Result := Result + Format('%s%s %s', [NEWLINE, TAB,
@@ -2444,7 +2454,7 @@ begin
         ListAllTables(true);
     end;
     eoView : ListViews(ObjectName);
-    eoProcedure : ListProcs(ObjectName);
+    eoProcedure : ListProcs(ObjectName, (etAlterProc in ExtractTypes));
     eoFunction : ListFunctions(ObjectName);
     eoGenerator : ListGenerators(ObjectName);
     eoException : ListException(ObjectName);
@@ -2862,7 +2872,7 @@ var
   var
     i, CollationID, CharSetID : Integer;
   begin
-    Result := Format('  %s ', [qryHeader.FieldByName('RDB$PARAMETER_NAME').AsString]);
+    Result := Format('  %s ', [QuoteIdentifier(FDatabase.SQLDialect, qryHeader.FieldByName('RDB$PARAMETER_NAME').AsString)]);
     for i := Low(ColumnTypes) to High(ColumnTypes) do
       if qryHeader.FieldByName('RDB$FIELD_TYPE').AsInteger = ColumnTypes[i].SQLType then
       begin

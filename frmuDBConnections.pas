@@ -81,9 +81,9 @@ begin
   frmDBConnections := nil;
   try
     Screen.Cursor := crHourGlass;
-    frmDBConnections := TfrmDBConnections.Create(Application);
-    lDatabase := TIBDatabase.Create(Application);
-    lIBDBInfo := TIBDatabaseInfo.Create(Application);
+    frmDBConnections := TfrmDBConnections.Create(Application.MainForm);
+    lDatabase := TIBDatabase.Create(frmDBConnections);
+    lIBDBInfo := TIBDatabaseInfo.Create(frmDBConnections);
     try
       case CurrSelServer.Server.Protocol of
         TCP: lDatabase.DatabaseName := Format('%s:%s',[CurrSelServer.ServerName,CurrDatabase.DatabaseName]);

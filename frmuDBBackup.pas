@@ -842,7 +842,6 @@ var
   lCnt, iRow : Integer;
   lGridRect : TGridRect;
   found: boolean;
-  fp: string;
 
 begin
   result := true;
@@ -903,18 +902,7 @@ begin
   for lCnt := 1 to sgBackupFiles.RowCount - 1 do
   begin
     if (sgBackupFiles.Cells[0,lCnt] <> '') then
-    begin
       found := true;
-      fp := ExtractFilePath(sgBackupFiles.Cells[0,lCnt]);
-
-      if fp = '' then
-      begin
-        DisplayMsg(ERR_NO_PATH, 'File: '+sgBackupFiles.Cells[0,lCnt]);
-        sgBackupFiles.SetFocus;
-        result := false;
-        exit;
-      end;
-    end;
   end;
 
   if not found then
@@ -959,7 +947,7 @@ var
 begin
   frmDBBackup := nil;
   try
-    frmDBBackup:= TfrmDBBackup.Create(Application);
+    frmDBBackup:= TfrmDBBackup.Create(Application.MainForm);
     frmDBBackup.FSourceServerNode := SourceServerNode;
     frmDBBackup.FSourceDatabaseNode := SourceDatabaseNode;
     frmDBBackup.FBackupFiles := BackupFiles;

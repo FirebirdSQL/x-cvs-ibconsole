@@ -14,7 +14,7 @@
  * Portions created by Inprise Corporation are Copyright (C) Inprise
  * Corporation. All Rights Reserved.
  * 
- * Contributor(s): ______________________________________.
+ * Contributor(s): Gavrilev Sergey.
 }
 
 {****************************************************************
@@ -39,7 +39,7 @@ interface
 
 uses
   SysUtils, Forms, ExtCtrls, StdCtrls, Classes, Controls, Dialogs,
-  Windows, zluibcClasses, Messages, Registry, frmuDlgClass;
+  Windows, zluibcClasses, Messages, frmuDlgClass;
 
 type
   TfrmDBRegister = class(TDialog)
@@ -63,6 +63,8 @@ type
     btnOK: TButton;
     btnCancel: TButton;
     cbCaseSensitive: TCheckBox;
+    cbCharacterSet: TComboBox;
+    Label2: TLabel;
     function FormHelp(Command: Word; Data: Integer; var CallHelp: Boolean): Boolean;
     procedure btnCancelClick(Sender: TObject);
     procedure btnOKClick(Sender: TObject);
@@ -79,15 +81,16 @@ type
     { Public declarations }
   end;
 
-function RegisterDB(var DBAlias,Username,Password,Role: string;
+function RegisterDB(var DBAlias,Username,Password,Role, CharacterSet: string;
                         DatabaseFiles: TStringList;
                         const SelServer: TibcServerNode;
                         var SaveAlias, CaseSensitive: boolean): boolean;
 
+
 implementation
 
 uses
-   IBServices, frmuMessage, zluGlobal, zluContextHelp, zluUtility;
+   IBServices, frmuMessage, zluGlobal, zluContextHelp, zluUtility, zluPersistent;
 
 {$R *.DFM}
 
@@ -109,7 +112,7 @@ uses
 *                      database
 *          SelServer - The specified server
 *          SaveAlias - Indicates whether or not to save the alias
-*                      information to the registry
+*                      information to the persistent storage
 *
 *  Return: boolean - Indicates the success/failure of the operation
 *
@@ -122,12 +125,14 @@ uses
 * Revisions:
 *
 *****************************************************************}
-function RegisterDB(var DBAlias, Username, Password, Role: string;
+
+function RegisterDB(var DBAlias, Username, Password, Role, CharacterSet: string;
   DatabaseFiles: TStringList; const SelServer: TibcServerNode; var SaveAlias, CaseSensitive: boolean): boolean;
+
 var
   frmDBRegister: TfrmDBRegister;
 begin
-  frmDBRegister := TfrmDBRegister.Create(Application);
+  frmDBRegister := TfrmDBRegister.Create(Application.MainForm);
   try
     // show servername
     frmDBRegister.stxServerName.Caption := SelServer.NodeName;
@@ -152,6 +157,9 @@ begin
       Username := frmDBRegister.edtUsername.Text;
       Password := frmDBRegister.edtPassword.Text;
       Role := frmDBRegister.edtRole.Text;
+
+      CharacterSet := frmDBRegister.cbCharacterSet.Text;
+
       SaveAlias := frmDBRegister.chkSaveAlias.Checked;
       CaseSensitive := frmDBRegister.cbCaseSensitive.Checked;
       result := true;
@@ -272,55 +280,43 @@ end;
 *
 *****************************************************************}
 function TfrmDBRegister.VerifyInputData(): boolean;
-var
-  lRegistry : TRegistry;
 begin
-  lRegistry := Nil;
   result := true;
 
-  try
-    lRegistry := TRegistry.Create;
+  // if no dbalias is specified
+  if (edtDBAlias.Text = '') or (edtDBAlias.Text = ' ') then
+  begin
+    DisplayMsg(ERR_DB_ALIAS,'');       // show error message
+    edtDBAlias.SetFocus;               // give focus to control
+    result := false;
+    Exit;
+  end;
 
-    // if no dbalias is specified
-    if (edtDBAlias.Text = '') or (edtDBAlias.Text = ' ') then
-    begin
-      DisplayMsg(ERR_DB_ALIAS,'');       // show error message
-      edtDBAlias.SetFocus;               // give focus to control
-      result := false;
-      Exit;
-    end;
+  // check for backslash in dbalias
+  // If backslashes are used (i.e. for a path), then the registry
+  // key will not be created properly
+  if Pos('\',edtDBAlias.Text) <> 0 then
+  begin
+    DisplayMsg(ERR_DB_ALIAS,'');       // show error message
+    edtDBAlias.SetFocus;               // give focus to control
+    result := false;
+    Exit;
+  end;
 
-    // check for backslash in dbalias
-    // If backslashes are used (i.e. for a path), then the registry
-    // key will not be created properly
-    if Pos('\',edtDBAlias.Text) <> 0 then
-    begin
-      DisplayMsg(ERR_DB_ALIAS,'');       // show error message
-      edtDBAlias.SetFocus;               // give focus to control
-      result := false;
-      Exit;
-    end;
+  // if no dbfile is specified
+  if (edtDBFile.GetTextLen = 0) then
+  begin
+    DisplayMsg(ERR_DB_FILE,edtDBFile.Text);        // show error message
+    edtDBFile.SetFocus;                            // give focus to control
+    result := false;
+    Exit;
+  end;
 
-    // if no dbfile is specified
-    if (edtDBFile.GetTextLen = 0) then
-    begin
-      DisplayMsg(ERR_DB_FILE,edtDBFile.Text);        // show error message
-      edtDBFile.SetFocus;                            // give focus to control
-      result := false;
-      Exit;
-    end;
-
-    if lRegistry.KeyExists(Format('%s%s\Databases\%s',[gRegServersKey,FCurrSelServer.Nodename,edtDBAlias.Text])) then
-    begin                                // show error message
-      DisplayMsg(ERR_DB_ALIAS,'This database alias already exists.');
-      edtDBAlias.SetFocus;               // give focus to control
-      result := false;
-      Exit;
-    end;
-
-
-  finally
-    lRegistry.Free;
+  if PersistentInfo.DatabaseAliasExists(FCurrSelServer.NodeName, edtDBAlias.Text) then // kris changed from DBAliasExists to DatabaseAliasExists
+  begin                                // show error message
+    DisplayMsg(ERR_DB_ALIAS,'This database alias already exists.');
+    edtDBAlias.SetFocus;               // give focus to control
+    result := false;
   end;
 end;
 

@@ -14,7 +14,7 @@
  * Portions created by Inprise Corporation are Copyright (C) Inprise
  * Corporation. All Rights Reserved.
  * 
- * Contributor(s): ______________________________________.
+ * Contributor(s): Krzysztof Golko.
 }
 
 {****************************************************************
@@ -40,7 +40,7 @@ interface
 
 uses
   Windows, SysUtils,Forms, ExtCtrls, StdCtrls, Classes, Controls, ComCtrls, Dialogs,
-  Graphics, zluibcClasses, zluCommDiag, Winsock, IB, ScktComp, Registry,
+  Graphics, zluibcClasses, zluCommDiag, Winsock, IB, ScktComp,
   IBDatabase, IBDatabaseInfo, Messages, frmuDlgClass;
 
 type
@@ -100,7 +100,6 @@ type
   private
     { Private declarations }
     FProtocols: TStringList;
-    FRegistry: TRegistry;
     FServers: TStringList;
     function VerifyInputData(): boolean;
     procedure PingServer;
@@ -129,7 +128,7 @@ var
 implementation
 
 uses
-   zluGlobal, zluContextHelp, IBServices, frmuMessage;
+   zluGlobal, zluPersistent, zluContextHelp, IBServices, frmuMessage;
 
 {$R *.DFM}
 
@@ -156,7 +155,7 @@ function DoDiagnostics(const CurrSelServer: TibcServerNode): integer;
 var
   frmCommDiag: TfrmCommDiag;
 begin
-  frmCommDiag:= TfrmCommDiag.Create(Application);
+  frmCommDiag:= TfrmCommDiag.Create(Application.MainForm);
   try
     // determine if a server is currently selected
     if Assigned(CurrSelServer) then
@@ -973,73 +972,48 @@ end;
 procedure TfrmCommDiag.FormCreate(Sender: TObject);
 var
   lCount : Integer ;
-  iProtocol : Integer;
-  lServerAlias : TStringList;
-  lStr : String;
-  lRegServersKey : String;
+  lServerAliases : TStringList;
+  sProps: TibcServerProps;
 begin
   inherited;
-  FRegistry := Nil;                    // initialize variables
   FServers := Nil;
   FProtocols := Nil;
-  lServerAlias :=Nil;
+  lServerAliases :=Nil;
   pgcDiagnostics.ActivePageIndex := 0;
   try
-    FRegistry := TRegistry.Create;
     FServers := TStringList.Create;
     FProtocols := TStringList.Create;
-    lServerAlias := TStringList.Create;
-
-    FRegistry.OpenKey('Software', False);
-    FRegistry.OpenKey('Borland', False);
-    FRegistry.OpenKey('Interbase', False);
-    FRegistry.OpenKey('IBConsole', False);
-    FRegistry.CreateKey('Servers');
-    lRegServersKey := Format('\%s\Servers\',[FRegistry.CurrentPath]);
+    lServerAliases := TStringList.Create;
 
     // if server entries are found
-    if FRegistry.OpenKey(lRegServersKey,False) then
     begin
       // get all server aliases
-      FRegistry.GetKeyNames(lServerAlias);
+      PersistentInfo.GetServerAliases(lServerAliases);
       // loop through list of aliases to get server names
-      for lCount := 0 to lServerAlias.Count - 1 do
+      for lCount := 0 to lServerAliases.Count - 1 do
       begin
-        if FRegistry.OpenKey(Format('%s%s',[lRegServersKey,lServerAlias.Strings[lCount]]),False) then
-        begin
-          // get server names and protocols
-          lStr := FRegistry.ReadString('ServerName');
-          iProtocol := FRegistry.ReadInteger('Protocol');
-
+        PersistentInfo.GetSerVerProps(lServerAliases[lCount], sProps);
           // Only add remote servers (and their protocol) to stringlists
-          if lStr <> 'Local Server' then
-          begin
-            FServers.Add(lStr);
-            FProtocols.Add(IntToStr(iProtocol));
-          end;
+        if sProps.ServerName <> 'Local Server' then
+      begin
+          FServers.Add(sProps.ServerName);
+          FProtocols.Add(IntToStr(integer(sProps.Protocol)));
+          cbDBServer.Items.Add(sProps.ServerName);
+          cbTCPIPServer.Items.Add(sProps.ServerName);
+          cbNetBEUIServer.Items.Add(sProps.ServerName);
+          cbSPXServer.Items.Add(sProps.ServerName);
         end;
       end;
     end;
 
-    // add remote servers to all server combo boxes
-    for lCount := 0 to FServers.Count - 1 do
-    begin
-        cbDBServer.Items.Add(FServers.Strings[lCount]);
-        cbTCPIPServer.Items.Add(FServers.Strings[lCount]);
-        cbNetBEUIServer.Items.Add(FServers.Strings[lCount]);
-        cbSPXServer.Items.Add(FServers.Strings[lCount]);
-    end;
   finally
-    FRegistry.CloseKey;
-    lServerAlias.Free;
+    lServerAliases.Free;
   end;
 end;
 
 // deallocate registry and stringlists when form is closed
 procedure TfrmCommDiag.FormDestroy(Sender: TObject);
 begin
-  FRegistry.Free;
-  FServers.Free;
   FProtocols.Free;
 end;
 

@@ -143,7 +143,7 @@ begin
     // if successfully attached to server
     if lValidation.Active = true then
     begin
-      frmDBValidation := TfrmDBValidation.Create(Application);
+      frmDBValidation := TfrmDBValidation.Create(Application.MainForm);
       try
         frmDBValidation.stxDatabaseName.Caption := MinimizeName (CurrSelDatabase.NodeName,
           frmDBValidation.stxDatabaseName.Canvas,

@@ -14,7 +14,7 @@
  * Portions created by Inprise Corporation are Copyright (C) Inprise
  * Corporation. All Rights Reserved.
  * 
- * Contributor(s): ______________________________________.
+ * Contributor(s): Krzysztof Golko, Sergey Gavrilev.
 }
 
 {****************************************************************
@@ -62,6 +62,7 @@ type
     procedure btnCancelClick(Sender: TObject);
     procedure btnConnectClick(Sender: TObject);
     procedure edtRoleChange(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
   private
     { Private declarations }
     function VerifyInputData(): boolean;
@@ -69,201 +70,127 @@ type
     { Public declarations }
   end;
 
-function DBConnect(var CurrSelDatabase: TibcDatabaseNode; const CurrSelServer: TibcServerNode; const SilentConnect: boolean): boolean;
+function DBConnect(CurrSelDatabase: TibcDatabaseNode; const CurrSelServer: TibcServerNode; const SilentConnect: boolean): boolean;
 
 implementation
 
 uses
-  IBServices, frmuMessage, zluGlobal, zluContextHelp;
+  IBServices, IBDatabase, frmuMessage, zluGlobal, zluContextHelp;
 
 {$R *.DFM}
 
-{****************************************************************
-*
-*  D B C o n n e c t ( )
-*
-****************************************************************
-*  Author: The Client Server Factory Inc.
-*  Date:   March 1, 1999
-*
-*  Input:  CurrSelDatabase - The specified database
-*          CurrSelServer   - The specified server
-*          SilentConnect   - Indicates whether or not to prompt
-*                            the user for login information or
-*                            to use the default login information.
-*
-*  Return: Boolean - Indicates the success/failure of the operation
-*
-*  Description:  Connects to the specified database of the
-*                specified server.  If SilentConnect is false the
-*                user is prompted for login information.
-*
-*****************************************************************
-* Revisions:
-*
-*****************************************************************}
-function DBConnect(var CurrSelDatabase: TibcDatabaseNode;
+function DoDBConnect(const CurrSelServer: TibcServerNode; CurrSelDatabase: TibcDatabaseNode): boolean;
+begin
+  // check if not already connected
+  if CurrSelDatabase.Database.Connected then
+  begin
+    Result := TRUE;
+    Exit;
+  end;
+
+  try
+      // check if a database file has been specified
+    if CurrSelDatabase.DatabaseFiles.Count > 0 then
+    begin
+      // construct UNC path to database file
+      case CurrSelServer.Server.Protocol of
+        TCP: CurrSelDatabase.Database.DatabaseName := Format('%s:%s',[CurrSelServer.ServerName,CurrSelDatabase.DatabaseFiles.Strings[0]]);
+        NamedPipe: CurrSelDatabase.Database.DatabaseName := Format('\\%s\%s',[CurrSelServer.ServerName,CurrSelDatabase.DatabaseFiles.Strings[0]]);
+        SPX: CurrSelDatabase.Database.DatabaseName := Format('%s@%s',[CurrSelServer.ServerName,CurrSelDatabase.DatabaseFiles.Strings[0]]);
+        Local:  CurrSelDatabase.Database.DatabaseName := CurrSelDatabase.DatabaseFiles.Strings[0];
+      end;
+    end;
+
+    // clear database parameters and submit login details
+    CurrSelDatabase.Database.Params.Clear;
+    CurrSelDatabase.Database.Params.Add(Format('isc_dpb_user_name=%s',[CurrSelDatabase.UserName]));
+    CurrSelDatabase.Database.Params.Add(Format('isc_dpb_password=%s',[CurrSelDatabase.Password]));
+    if CurrSelDatabase.CaseSensitiveRole then
+      CurrSelDatabase.Database.Params.Add(Format('isc_dpb_sql_role_name="%s"',[CurrSelDatabase.Role]))
+    else
+      CurrSelDatabase.Database.Params.Add(Format('isc_dpb_sql_role_name=%s',[CurrSelDatabase.Role]));
+
+    if (CurrSelDatabase.CharacterSet <> '') and (CurrSelDatabase.CharacterSet <> 'None') then
+      CurrSelDatabase.Database.Params.Add('isc_dpb_lc_ctype=' + CurrSelDatabase.CharacterSet);
+
+    Screen.Cursor := crHourGlass;
+    CurrSelDatabase.Database.Connected := true;
+    Screen.Cursor := crDefault;
+  except                               // if an exception occurs then trap it
+    on E:EIBError do                   // and show error message
+    begin
+      Screen.Cursor := crDefault;
+      DisplayMsg(ERR_DB_CONNECT, E.Message);
+    end;
+  end;
+  Result := CurrSelDatabase.Database.Connected;
+end;
+
+{  Input:  CurrSelDatabase - The specified database[  CurrSelServer   - The specified server
+   SilentConnect - Indicates whether or not to prompt the user for login information or
+                   to use the default login information.
+  Return: Boolean - Indicates the success/failure of the operation
+  Description:  Connects to the specified database of the specified server.
+                If SilentConnect is false the user is prompted for login information. }
+function DBConnect(CurrSelDatabase: TibcDatabaseNode;
   const CurrSelServer: TibcServerNode;
   const SilentConnect: boolean): boolean;
 var
   frmDBConnect: TfrmDBConnect;
-  attachDialect: integer;
-  //Kris 13-Aug-2000 start
-  attachCharSet: string;
-  //Kris 13-Aug-2000 end
 begin
   frmDBConnect := nil;
   CurrSelDatabase.UserName := CurrSelServer.UserName;
   CurrSelDatabase.Password := CurrSelServer.Password;
+  if CurrSelDatabase.CaseSensitiveRole then
+    CurrSelDatabase.Database.SQLDialect := 3;
 
   // check if a SilentConnect is specified
   if not SilentConnect then
   begin
     try
-      frmDBConnect:= TfrmDBConnect.Create(Application);
+      frmDBConnect:= TfrmDBConnect.Create(Application.MainForm);
 
       frmDBConnect.stxDatabaseName.Caption := CurrSelDatabase.NodeName;
       frmDBConnect.edtUsername.Text := CurrSelDatabase.UserName;
       frmDBConnect.edtRole.Text := CurrSelDatabase.Role;
       frmDBConnect.cbDialect.ItemIndex := 2; // default to dialect 3
-      // Kris 12-Aug-2000 start
-      with frmDBConnect.cbCharacterSet do
-      begin
-        // This is temporary, list of vailable character sets is set in IBX
-        // and in another place in IBConsole, it should be provided by IBX
-        Items.Add('None');
-        Items.Add('ASCII');
-        Items.Add('BIG_5');
-        Items.Add('CYRL');
-        Items.Add('DOS437');
-        Items.Add('DOS850');
-        Items.Add('DOS852');
-        Items.Add('DOS857');
-        Items.Add('DOS860');
-        Items.Add('DOS861');
-        Items.Add('DOS863');
-        Items.Add('DOS865');
-        Items.Add('EUCJ_0208');
-        Items.Add('GB_2312');
-        Items.Add('ISO8859_1');
-        Items.Add('KSC_5601');
-        Items.Add('NEXT');
-        Items.Add('OCTETS');
-        Items.Add('SJIS_0208');
-        Items.Add('UNICODE_FSS');
-        Items.Add('WIN1250');
-        Items.Add('WIN1251');
-        Items.Add('WIN1252');
-        Items.Add('WIN1253');
-        Items.Add('WIN1254');
-        ItemIndex := 0;
-      end;
-      // Kris 12-Aug-2000 end
-      frmDBConnect.ShowModal;
-      // Kris 12-Aug-2000 end
-      if frmDBConnect.ModalResult = mrOK then
+
+      frmDBConnect.cbCharacterSet.ItemIndex := frmDBConnect.cbCharacterSet.Items.IndexOf(CurrSelDatabase.CharacterSet);
+
+      Result := FALSE;
+      while frmDBConnect.ShowModal = mrOK do
       begin
         // set username, password and role
         CurrSelDatabase.UserName := frmDBConnect.edtUsername.Text;
         CurrSelDatabase.Password := frmDBConnect.edtPassword.Text;
+        CurrSelDatabase.CharacterSet := frmDBConnect.cbCharacterSet.Text;
+
+        CurrSelDatabase.Role := frmDBConnect.edtRole.Text;
+        // get SQL dialect
+        CurrSelDatabase.Database.SQLDialect := frmDBConnect.cbDialect.ItemIndex + 1;
+        // upgrade SQL dialect if case sensitive role name
         if frmDBConnect.cbCaseSensitive.Checked then
+          CurrSelDatabase.Database.SQLDialect := 3;
+
+        if DODBConnect(CurrSelServer, CurrSelDatabase) then
         begin
-          CurrSelDatabase.Role := frmDBConnect.edtRole.Text;
-          attachDialect := 3;
-        end else
-        begin
-          CurrSelDatabase.Role := frmDBConnect.edtRole.Text;
-          attachDialect := 1;
+          Result := true;
+          Break;
         end;
-        CurrSelDatabase.Database.SQLDialect := frmDBConnect.cbDialect.ItemIndex+1;
-        // Kris 12-Aug-2000 start
-        attachCharSet := frmDBConnect.cbCharacterSet.Text;
-        // Kris 12-Aug-2000 end
       end
-      else
-      begin
-        result := false;
-        Exit;
-      end;
     finally
-      // deallocate memory
       frmDBConnect.Free;
     end;
   end
   else
-    if CurrSelDatabase.CaseSensitiveRole then
-      attachDialect := 3
-    else
-      attachDialect := 1;
+  begin
+    Result := DoDBConnect(CurrSelServer, CurrSelDatabase);
+  end;
 
-  // if a silent connect was specified or the proper login information was supplied
-  try
-    Screen.Cursor := crHourGlass;
-    // check if the database isn't already connected
-    if (not Assigned(CurrSelDatabase.Database)) or
-       (not CurrSelDatabase.Database.Connected) then
-    begin
-      // check if a database file has been specified
-      if CurrSelDatabase.DatabaseFiles.Count > 0 then
-      begin
-        // construct UNC path to database file
-        case CurrSelServer.Server.Protocol of
-          TCP: CurrSelDatabase.Database.DatabaseName := Format('%s:%s',[CurrSelServer.ServerName,CurrSelDatabase.DatabaseFiles.Strings[0]]);
-          NamedPipe: CurrSelDatabase.Database.DatabaseName := Format('\\%s\%s',[CurrSelServer.ServerName,CurrSelDatabase.DatabaseFiles.Strings[0]]);
-          SPX: CurrSelDatabase.Database.DatabaseName := Format('%s@%s',[CurrSelServer.ServerName,CurrSelDatabase.DatabaseFiles.Strings[0]]);
-          Local:  CurrSelDatabase.Database.DatabaseName := CurrSelDatabase.DatabaseFiles.Strings[0];
-        end;
-      end;
-      // clear database parameters and submit login details
-      CurrSelDatabase.Database.Params.Clear;
-      CurrSelDatabase.Database.Params.Add(Format('isc_dpb_user_name=%s',[CurrSelDatabase.UserName]));
-      CurrSelDatabase.Database.Params.Add(Format('isc_dpb_password=%s',[CurrSelDatabase.Password]));
-      if attachDialect = 3 then
-        CurrSelDatabase.Database.Params.Add(Format('isc_dpb_sql_role_name="%s"',[CurrSelDatabase.Role]))
-      else
-        CurrSelDatabase.Database.Params.Add(Format('isc_dpb_sql_role_name=%s',[CurrSelDatabase.Role]));
-      CurrSelDatabase.Database.Params.Add(Format('isc_dpb_SQL_dialect=%d',[attachDialect]));
-      // Kris 12-Aug-2000 start
-      if (attachCharSet <> '') and (attachCharSet <> 'None') then
-        CurrSelDatabase.Database.Params.Add('isc_dpb_lc_ctype=' + attachCharSet);
-      // Kris 12-Aug-2000 end
-
-      // attempt to connect to the database
-      CurrSelDatabase.Database.Connected := true;
-      Application.ProcessMessages;
-
-      // Check to see if the database dialect matches, the client dialect
-      with CurrSelDatabase.Database do begin
-        if not SilentConnect then begin
-          //Kris 15-Aug-2000 start
-          //old code
-          //if DBSQLDialect <> SQLDialect then
-          //  DisplayMsg (WAR_DIALECT_MISMATCH,
-          //  Format ('Database dialect (%d) does not match client dialect (%d).',[DBSQLDialect, SQLDialect]));
-          if DBSQLDialect < SQLDialect then
-            DisplayMsg (WAR_DIALECT_MISMATCH,
-            Format ('Database dialect (%d) lesser than client dialect (%d).',[DBSQLDialect, SQLDialect]));
-          //Kris 15-Aug-2000 end
-        end else
-          SQLDialect := DBSqlDialect;
-        // Kris 14-Aug-2000 start
-        gAppSettings[DEFAULT_DIALECT].Setting := SQLDialect;
-        gAppSettings[CHARACTER_SET].Setting := attachCharSet;
-        // Kris 14-Aug-2000 end
-      end;
-
-    end;
-      result := true;
-      Screen.Cursor := crDefault;
-  except                               // if an exception occurs then trap it
-    on E:EIBError do                   // and show error message
-    begin
-      DisplayMsg(ERR_DB_CONNECT,E.Message);
-      result := false;
-      Screen.Cursor := crDefault;
-{ TODO: This was removed to remove a crash when connecting to a non-existent db }
-//      CurrSelDatabase := nil;
-    end;
+  if Result then
+  begin
+    gAppSettings[DEFAULT_DIALECT].Setting := CurrSelDatabase.Database.SQLDialect;
+    gAppSettings[CHARACTER_SET].Setting := CurrSelDatabase.CharacterSet;
   end;
 end;
 
@@ -332,6 +259,41 @@ procedure TfrmDBConnect.edtRoleChange(Sender: TObject);
 begin
   inherited;
   cbCaseSensitive.Enabled := (edtRole.GetTextLen > 0);
+end;
+
+procedure TfrmDBConnect.FormCreate(Sender: TObject);
+begin
+  inherited;
+  with cbCharacterSet do
+  begin
+    // This is temporary, list of vailable character sets is set in IBX
+    // and in another place in IBConsole, it should be provided by IBX
+    Items.Add('None');
+    Items.Add('ASCII');
+    Items.Add('BIG_5');
+    Items.Add('CYRL');
+    Items.Add('DOS437');
+    Items.Add('DOS850');
+    Items.Add('DOS852');
+    Items.Add('DOS857');
+    Items.Add('DOS860');
+    Items.Add('DOS861');
+    Items.Add('DOS863');
+    Items.Add('DOS865');
+    Items.Add('EUCJ_0208');
+    Items.Add('GB_2312');
+    Items.Add('ISO8859_1');
+    Items.Add('KSC_5601');
+    Items.Add('NEXT');
+    Items.Add('OCTETS');
+    Items.Add('SJIS_0208');
+    Items.Add('UNICODE_FSS');
+    Items.Add('WIN1250');
+    Items.Add('WIN1251');
+    Items.Add('WIN1252');
+    Items.Add('WIN1253');
+    Items.Add('WIN1254');
+  end;
 end;
 
 end.

@@ -1,6 +1,6 @@
 object frmMain: TfrmMain
-  Left = 259
-  Top = 171
+  Left = 265
+  Top = 228
   HelpContext = 1
   ActiveControl = tvMain
   AutoScroll = False
@@ -18,7 +18,7 @@ object frmMain: TfrmMain
   HelpFile = 'ibconsole.hlp'
   Menu = MainMenu1
   OldCreateOrder = True
-  Position = poScreenCenter
+  Position = poDefault
   Scaled = False
   OnClose = FormClose
   OnCreate = FormCreate
@@ -170,7 +170,7 @@ object frmMain: TfrmMain
     ReadOnly = True
     ParentShowHint = False
     ShowHint = True
-    SmallImages = imgTreeview
+    SmallImages = imgToolBarsEnabled
     TabOrder = 3
     ViewStyle = vsReport
     OnChange = lvObjectsChange
@@ -180,7 +180,7 @@ object frmMain: TfrmMain
     OnKeyDown = lvObjectsKeyDown
   end
   object MainMenu1: TMainMenu
-    Left = 401
+    Left = 400
     Top = 104
     object Console1: TMenuItem
       Caption = '&Console'
@@ -348,6 +348,12 @@ object frmMain: TfrmMain
       object InteractiveSQL2: TMenuItem
         Action = ExtToolsLaunchISQL
       end
+      object ConnectAs3: TMenuItem
+        Caption = 'New connection...'
+        Hint = 'Interactive SQL'
+        ImageIndex = 36
+        OnClick = ToolsSQLExecute1
+      end
       object Configure1: TMenuItem
         Action = ExtToolsConfigure
       end
@@ -379,257 +385,11 @@ object frmMain: TfrmMain
       end
     end
   end
-  object ServerConnectedActions: TActionList
-    Images = imgToolBarsEnabled
-    Left = 575
-    Top = 85
-    object ServerLogout: TAction
-      Caption = 'Log&out'
-      Hint = 'Logout from the current server'
-      ImageIndex = 3
-      OnExecute = ServerLogoutExecute
-      OnUpdate = ServerConnectedUpdate
-    end
-    object ServerSecurity: TAction
-      Caption = 'User &Security ...'
-      Hint = 'Manage InterBase Users'
-      ImageIndex = 25
-      OnExecute = ServerSecurityExecute
-      OnUpdate = ServerConnectedUpdate
-    end
-    object ServerProperties: TAction
-      Caption = '&Properties ...'
-      Hint = 'View Server properties'
-      OnExecute = ServerPropertiesExecute
-      OnUpdate = ServerPropertiesUpdate
-    end
-  end
-  object DatabaseConnectedActions: TActionList
-    Images = imgToolBarsEnabled
-    Left = 381
-    Top = 246
-    object DatabaseDisconnect: TAction
-      Caption = '&Disconnect'
-      Hint = 'Disconnect from the current database'
-      ImageIndex = 8
-      OnExecute = DatabaseDisconnectExecute
-      OnUpdate = DatabaseConnectedActionsUpdate
-    end
-    object DatabaseProperties: TAction
-      Caption = '&Properties ...'
-      Hint = 'Show database properties'
-      ImageIndex = 28
-      OnExecute = DatabasePropertiesExecute
-      OnUpdate = DatabasePropertiesUpdate
-    end
-    object DatabaseStatistics: TAction
-      Caption = '&Database Statistics ...'
-      Hint = 'Display database statistics'
-      ImageIndex = 29
-      OnExecute = ToolsStatisticsExecute
-      OnUpdate = DatabaseConnectedActionsUpdate
-    end
-    object DatabaseShutdown: TAction
-      Tag = 999
-      Caption = '&Shutdown ...'
-      Hint = 'Shutdown the database'
-      ImageIndex = 33
-      OnExecute = DatabaseShutdownExecute
-      OnUpdate = DatabaseShutdownUpdate
-    end
-    object DatabaseSweep: TAction
-      Caption = '&Sweep'
-      Hint = 'Perform a database sweep'
-      OnExecute = ToolsSweepExecute
-      OnUpdate = DatabaseConnectedActionsUpdate
-    end
-    object DatabaseRecoverTrans: TAction
-      Caption = '&Transaction Recovery ...'
-      Hint = 'Recover limbo transactions'
-      OnExecute = ToolsTransRecoverExecute
-      OnUpdate = DatabaseConnectedActionsUpdate
-    end
-    object DatabaseMetadata: TAction
-      Caption = 'View &Metadata ...'
-      Hint = 'View Database Metadata'
-      OnExecute = DatabaseMetadataExecute
-      OnUpdate = DatabaseConnectedActionsUpdate
-    end
-    object DatabaseRestart: TAction
-      Tag = 999
-      Caption = 'Database &Restart'
-      Hint = 'Restart a database'
-      OnExecute = DatabaseRestartExecute
-      OnUpdate = DatabaseShutdownUpdate
-    end
-    object DatabaseDrop: TAction
-      Caption = 'Drop Database'
-      Hint = 'Drop the current database'
-      OnExecute = DatabaseDropExecute
-      OnUpdate = DatabaseConnectedActionsUpdate
-    end
-    object DBCBackup: TAction
-      Caption = 'Database Backup'
-      Hint = 'Backup an InterBase database'
-      ImageIndex = 22
-      OnExecute = DatabaseBackupExecute
-    end
-    object DatabaseUsers: TAction
-      Caption = 'Connected &Users ...'
-      Hint = 'View a list of users currently connected to the server'
-      OnExecute = ServerUsersExecute
-      OnUpdate = DatabaseConnectedActionsUpdate
-    end
-    object DBCRestore: TAction
-      Caption = 'Restore Database'
-      Hint = 'Restore an InterBase database'
-      ImageIndex = 23
-      OnExecute = DatabaseRestoreExecute
-    end
-  end
-  object ServerActions: TActionList
-    Images = imgToolBarsEnabled
-    Left = 379
-    Top = 283
-    object ServerLogin: TAction
-      Caption = '&Login ...'
-      Hint = 'Login to the selected server'
-      ImageIndex = 2
-      OnExecute = ServerLoginExecute
-      OnUpdate = ServerActionsUpdate
-    end
-    object ServerRegister: TAction
-      Caption = '&Register ...'
-      Hint = 'Register a new InterBase Server'
-      ImageIndex = 0
-      OnExecute = ServerRegisterExecute
-    end
-    object ServerUnregister: TAction
-      Caption = '&Un-Register'
-      Hint = 'Unregister an InterBase Server'
-      ImageIndex = 1
-      OnExecute = ServerUnregisterExecute
-      OnUpdate = ServerActionsUpdate
-    end
-    object ServerConnection: TAction
-      Caption = '&Diagnose Connection ...'
-      Hint = 'Diagnose a connection to a server'
-      OnExecute = ServerDiagConnectionExecute
-      OnUpdate = ServerActionsUpdate
-    end
-    object ServerActionProps: TAction
-      Caption = '&Properties ...'
-      Hint = 'View Server properties'
-      OnExecute = ServerPropertiesExecute
-      OnUpdate = ServerPropertiesUpdate
-    end
-  end
-  object DatabaseActions: TActionList
-    Images = imgToolBarsEnabled
-    Left = 476
-    Top = 196
-    object DatabaseRegister: TAction
-      Caption = '&Register ...'
-      Hint = 'Register a new database'
-      ImageIndex = 5
-      OnExecute = DatabaseRegisterExecute
-      OnUpdate = DatabaseCreateUpdate
-    end
-    object DatabaseUnregister: TAction
-      Caption = '&Unregister'
-      Hint = 'Unregister the current database'
-      ImageIndex = 6
-      OnExecute = DatabaseUnregisterExecute
-      OnUpdate = DatabaseActionsUpdate
-    end
-    object DatabaseConnect: TAction
-      Caption = '&Connect'
-      Hint = 'Connect to the selected database'
-      ImageIndex = 7
-      OnExecute = DatabaseConnectExecute
-      OnUpdate = DatabaseActionsUpdate
-    end
-    object DatabaseConnectAs: TAction
-      Caption = 'Connect &As ...'
-      Hint = 'Connect to the selected database specifying a user'
-      OnExecute = DatabaseConnectAsExecute
-      OnUpdate = DatabaseActionsUpdate
-    end
-    object DatabaseCreate: TAction
-      Tag = 1
-      Caption = 'C&reate Database ...'
-      Hint = 'Create a new database'
-      ImageIndex = 4
-      OnExecute = DatabaseCreateExecute
-      OnUpdate = DatabaseCreateUpdate
-    end
-    object DatabaseValidate: TAction
-      Caption = '&Validation ...'
-      Hint = 'Validate the database structure'
-      OnExecute = ToolsValidationExecute
-      OnUpdate = DatabaseValidateUpdate
-    end
-    object DatabaseActionsProperties: TAction
-      Caption = 'Properties ...'
-      Hint = 'Show database properties'
-      OnExecute = DatabasePropertiesExecute
-    end
-  end
-  object ToolActions: TActionList
-    Images = imgToolBarsEnabled
-    Left = 449
-    Top = 346
-    object ExtToolsLaunchISQL: TAction
-      Caption = 'Interactive S&QL ...'
-      Hint = 'Interactive SQL'
-      ImageIndex = 36
-      OnExecute = ToolsSQLExecute
-    end
-    object ExtToolsConfigure: TAction
-      Caption = '&Configure Tools ...'
-      OnExecute = ExtToolsConfigureExecute
-    end
-    object ExtToolDropDown: TAction
-      Caption = '&Tools'
-      OnExecute = ExtToolDropDownExecute
-    end
-  end
-  object BackupActions: TActionList
-    Images = imgToolBarsEnabled
-    Left = 422
-    Top = 219
-    object DatabaseBackup: TAction
-      Caption = '&Backup ...'
-      Hint = 'Back up an InterBase database'
-      ImageIndex = 22
-      OnExecute = DatabaseBackupExecute
-      OnUpdate = ServerConnectedUpdate
-    end
-    object DatabaseRestore: TAction
-      Caption = '&Restore ...'
-      Hint = 'Restore an InterBase database'
-      ImageIndex = 23
-      OnExecute = DatabaseRestoreExecute
-      OnUpdate = ServerConnectedUpdate
-    end
-    object BackupRestoreModifyAlias: TAction
-      Caption = '&Modify Backup Alias ...'
-      Hint = 'Modify an existing backup alias'
-      OnExecute = BackupRestoreModifyAliasExecute
-      OnUpdate = BackupRestoreAliasUpdate
-    end
-    object BackupRestoreRemoveAlias: TAction
-      Caption = '&Delete Alias'
-      Hint = 'Delete the current backup alias'
-      OnExecute = BackupRestoreRemoveAliasExecute
-      OnUpdate = BackupRestoreAliasUpdate
-    end
-  end
   object imgTreeview: TImageList
     Height = 18
     Width = 20
-    Left = 78
-    Top = 73
+    Left = 80
+    Top = 72
     Bitmap = {
       494C01011F002200040014001200FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       000000000000360000002800000050000000A2000000010020000000000080CA
@@ -2321,8 +2081,8 @@ object frmMain: TfrmMain
   object imgToolBarsEnabled: TImageList
     Height = 19
     Width = 19
-    Left = 181
-    Top = 193
+    Left = 176
+    Top = 208
     Bitmap = {
       494C01012F003100040013001300FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       00000000000036000000280000004C000000F700000001002000000000005025
@@ -4773,8 +4533,8 @@ object frmMain: TfrmMain
   object imgLargeView: TImageList
     Height = 33
     Width = 33
-    Left = 46
-    Top = 102
+    Left = 48
+    Top = 104
     Bitmap = {
       494C01011C001D00040021002100FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000840000000801000001002000000000008020
@@ -9308,7 +9068,7 @@ object frmMain: TfrmMain
     Height = 19
     Width = 19
     Left = 76
-    Top = 103
+    Top = 104
     Bitmap = {
       494C010125002700040013001300FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       00000000000036000000280000004C000000BE0000000100200000000000A0E1
@@ -11195,8 +10955,8 @@ object frmMain: TfrmMain
   end
   object pmDatabaseActions: TPopupMenu
     Images = imgToolBarsEnabled
-    Left = 58
-    Top = 378
+    Left = 44
+    Top = 356
     object Register1: TMenuItem
       Action = DatabaseRegister
     end
@@ -11230,8 +10990,8 @@ object frmMain: TfrmMain
   end
   object pmDatabaseConnectedActions: TPopupMenu
     Images = imgToolBarsEnabled
-    Left = 114
-    Top = 311
+    Left = 36
+    Top = 272
     object Disconnect1: TMenuItem
       Action = DatabaseDisconnect
       SubMenuImages = imgToolBarsEnabled
@@ -11301,7 +11061,7 @@ object frmMain: TfrmMain
   end
   object pmServer: TPopupMenu
     Images = imgToolBarsEnabled
-    Left = 110
+    Left = 112
     Top = 208
     object Register2: TMenuItem
       Action = ServerRegister
@@ -11342,8 +11102,8 @@ object frmMain: TfrmMain
   end
   object pmBackupRestore: TPopupMenu
     Images = imgToolBarsEnabled
-    Left = 143
-    Top = 275
+    Left = 152
+    Top = 312
     object Backup3: TMenuItem
       Action = DatabaseBackup
     end
@@ -11362,8 +11122,8 @@ object frmMain: TfrmMain
   end
   object pmDatabases: TPopupMenu
     Images = imgToolBarsEnabled
-    Left = 138
-    Top = 378
+    Left = 140
+    Top = 380
     object Register5: TMenuItem
       Action = DatabaseRegister
     end
@@ -11374,43 +11134,10 @@ object frmMain: TfrmMain
       Action = DatabaseCreate
     end
   end
-  object LogActions: TActionList
-    Left = 382
-    Top = 315
-    object ViewServerLog: TAction
-      Caption = '&View Logfile ...'
-      Hint = 'View the INTERBASE.LOG file for the current server'
-      ImageIndex = 27
-      OnExecute = ServerViewLogExecute
-      OnUpdate = ServerConnectedUpdate
-    end
-  end
-  object UserActions: TActionList
-    Images = imgToolBarsEnabled
-    Left = 493
-    Top = 285
-    object UserAdd: TAction
-      Caption = '&Add User ...'
-      Hint = 'Add a new user entry'
-      OnExecute = UserAddExecute
-    end
-    object UserModify: TAction
-      Caption = '&Modify User ...'
-      Hint = 'Modify a user entry'
-      OnExecute = UserModifyExecute
-      OnUpdate = UserModifyUpdate
-    end
-    object UserDelete: TAction
-      Caption = '&Delete User'
-      Hint = 'Delete a user entry'
-      OnExecute = UserDeleteExecute
-      OnUpdate = UserDeleteUpdate
-    end
-  end
   object pmUsers: TPopupMenu
     Images = imgToolBarsEnabled
-    Left = 177
-    Top = 163
+    Left = 176
+    Top = 164
     object AddUser1: TMenuItem
       Action = UserAdd
     end
@@ -11421,10 +11148,10 @@ object frmMain: TfrmMain
       Action = UserDelete
     end
   end
-  object UIActions: TActionList
+  object actMain: TActionList
     Images = imgToolBarsEnabled
-    Left = 474
-    Top = 78
+    Left = 128
+    Top = 60
     object ConsoleExit: TAction
       Category = 'Console'
       Caption = 'E&xit'
@@ -11533,10 +11260,329 @@ object frmMain: TfrmMain
       Category = 'Window'
       Caption = 'Windows'
     end
+    object UserAdd: TAction
+      Category = 'User'
+      Caption = '&Add User ...'
+      Hint = 'Add a new user entry'
+      OnExecute = UserAddExecute
+    end
+    object UserModify: TAction
+      Category = 'User'
+      Caption = '&Modify User ...'
+      Hint = 'Modify a user entry'
+      OnExecute = UserModifyExecute
+      OnUpdate = UserModifyUpdate
+    end
+    object UserDelete: TAction
+      Category = 'User'
+      Caption = '&Delete User'
+      Hint = 'Delete a user entry'
+      OnExecute = UserDeleteExecute
+      OnUpdate = UserDeleteUpdate
+    end
+    object ServerLogout: TAction
+      Category = 'Server Connected'
+      Caption = 'Log&out'
+      Hint = 'Logout from the current server'
+      ImageIndex = 3
+      OnExecute = ServerLogoutExecute
+      OnUpdate = ServerConnectedUpdate
+    end
+    object ServerSecurity: TAction
+      Category = 'Server Connected'
+      Caption = 'User &Security ...'
+      Hint = 'Manage InterBase Users'
+      ImageIndex = 25
+      OnExecute = ServerSecurityExecute
+      OnUpdate = ServerConnectedUpdate
+    end
+    object ServerProperties: TAction
+      Category = 'Server Connected'
+      Caption = '&Properties ...'
+      Hint = 'View Server properties'
+      OnExecute = ServerPropertiesExecute
+      OnUpdate = ServerPropertiesUpdate
+    end
+    object DatabaseDisconnect: TAction
+      Category = 'Database Connected'
+      Caption = '&Disconnect'
+      Hint = 'Disconnect from the current database'
+      ImageIndex = 8
+      OnExecute = DatabaseDisconnectExecute
+      OnUpdate = DatabaseConnectedActionsUpdate
+    end
+    object DatabaseProperties: TAction
+      Category = 'Database Connected'
+      Caption = '&Properties ...'
+      Hint = 'Show database properties'
+      ImageIndex = 28
+      OnExecute = DatabasePropertiesExecute
+      OnUpdate = DatabasePropertiesUpdate
+    end
+    object DatabaseStatistics: TAction
+      Category = 'Database Connected'
+      Caption = '&Database Statistics ...'
+      Hint = 'Display database statistics'
+      ImageIndex = 29
+      OnExecute = ToolsStatisticsExecute
+      OnUpdate = DatabaseConnectedActionsUpdate
+    end
+    object DatabaseShutdown: TAction
+      Tag = 999
+      Category = 'Database Connected'
+      Caption = '&Shutdown ...'
+      Hint = 'Shutdown the database'
+      ImageIndex = 33
+      OnExecute = DatabaseShutdownExecute
+      OnUpdate = DatabaseShutdownUpdate
+    end
+    object DatabaseSweep: TAction
+      Category = 'Database Connected'
+      Caption = '&Sweep'
+      Hint = 'Perform a database sweep'
+      OnExecute = ToolsSweepExecute
+      OnUpdate = DatabaseConnectedActionsUpdate
+    end
+    object DatabaseRecoverTrans: TAction
+      Category = 'Database Connected'
+      Caption = '&Transaction Recovery ...'
+      Hint = 'Recover limbo transactions'
+      OnExecute = ToolsTransRecoverExecute
+      OnUpdate = DatabaseConnectedActionsUpdate
+    end
+    object DatabaseMetadata: TAction
+      Category = 'Database Connected'
+      Caption = 'View &Metadata ...'
+      Hint = 'View Database Metadata'
+      OnExecute = DatabaseMetadataExecute
+      OnUpdate = DatabaseConnectedActionsUpdate
+    end
+    object DatabaseRestart: TAction
+      Tag = 999
+      Category = 'Database Connected'
+      Caption = 'Database &Restart'
+      Hint = 'Restart a database'
+      OnExecute = DatabaseRestartExecute
+      OnUpdate = DatabaseShutdownUpdate
+    end
+    object DatabaseDrop: TAction
+      Category = 'Database Connected'
+      Caption = 'Drop Database'
+      Hint = 'Drop the current database'
+      OnExecute = DatabaseDropExecute
+      OnUpdate = DatabaseConnectedActionsUpdate
+    end
+    object DBCBackup: TAction
+      Category = 'Database Connected'
+      Caption = 'Database Backup'
+      Hint = 'Backup an InterBase database'
+      ImageIndex = 22
+      OnExecute = DatabaseBackupExecute
+    end
+    object DatabaseUsers: TAction
+      Category = 'Database Connected'
+      Caption = 'Connected &Users ...'
+      Hint = 'View a list of users currently connected to the server'
+      OnExecute = ServerUsersExecute
+      OnUpdate = DatabaseConnectedActionsUpdate
+    end
+    object DBCRestore: TAction
+      Category = 'Database Connected'
+      Caption = 'Restore Database'
+      Hint = 'Restore an InterBase database'
+      ImageIndex = 23
+      OnExecute = DatabaseRestoreExecute
+    end
+    object ServerLogin: TAction
+      Category = 'Server'
+      Caption = '&Login ...'
+      Hint = 'Login to the selected server'
+      ImageIndex = 2
+      OnExecute = ServerLoginExecute
+      OnUpdate = ServerActionsUpdate
+    end
+    object ServerRegister: TAction
+      Category = 'Server'
+      Caption = '&Register ...'
+      Hint = 'Register a new InterBase Server'
+      ImageIndex = 0
+      OnExecute = ServerRegisterExecute
+    end
+    object ServerUnregister: TAction
+      Category = 'Server'
+      Caption = '&Un-Register'
+      Hint = 'Unregister an InterBase Server'
+      ImageIndex = 1
+      OnExecute = ServerUnregisterExecute
+      OnUpdate = ServerActionsUpdate
+    end
+    object ServerConnection: TAction
+      Category = 'Server'
+      Caption = '&Diagnose Connection ...'
+      Hint = 'Diagnose a connection to a server'
+      OnExecute = ServerDiagConnectionExecute
+      OnUpdate = ServerActionsUpdate
+    end
+    object ServerActionProps: TAction
+      Category = 'Server'
+      Caption = '&Properties ...'
+      Hint = 'View Server properties'
+      OnExecute = ServerPropertiesExecute
+      OnUpdate = ServerPropertiesUpdate
+    end
+    object DatabaseRegister: TAction
+      Category = 'Database'
+      Caption = '&Register ...'
+      Hint = 'Register a new database'
+      ImageIndex = 5
+      OnExecute = DatabaseRegisterExecute
+      OnUpdate = DatabaseCreateUpdate
+    end
+    object DatabaseUnregister: TAction
+      Category = 'Database'
+      Caption = '&Unregister'
+      Hint = 'Unregister the current database'
+      ImageIndex = 6
+      OnExecute = DatabaseUnregisterExecute
+      OnUpdate = DatabaseActionsUpdate
+    end
+    object DatabaseConnect: TAction
+      Category = 'Database'
+      Caption = '&Connect'
+      Hint = 'Connect to the selected database'
+      ImageIndex = 7
+      OnExecute = DatabaseConnectExecute
+      OnUpdate = DatabaseActionsUpdate
+    end
+    object DatabaseConnectAs: TAction
+      Category = 'Database'
+      Caption = 'Connect &As ...'
+      Hint = 'Connect to the selected database specifying a user'
+      OnExecute = DatabaseConnectAsExecute
+      OnUpdate = DatabaseActionsUpdate
+    end
+    object DatabaseCreate: TAction
+      Tag = 1
+      Category = 'Database'
+      Caption = 'C&reate Database ...'
+      Hint = 'Create a new database'
+      ImageIndex = 4
+      OnExecute = DatabaseCreateExecute
+      OnUpdate = DatabaseCreateUpdate
+    end
+    object DatabaseValidate: TAction
+      Category = 'Database'
+      Caption = '&Validation ...'
+      Hint = 'Validate the database structure'
+      OnExecute = ToolsValidationExecute
+      OnUpdate = DatabaseValidateUpdate
+    end
+    object DatabaseActionsProperties: TAction
+      Category = 'Database'
+      Caption = 'Properties ...'
+      Hint = 'Show database properties'
+      OnExecute = DatabasePropertiesExecute
+    end
+    object ExtToolsLaunchISQL: TAction
+      Category = 'Tool'
+      Caption = 'Interactive S&QL ...'
+      Hint = 'Interactive SQL'
+      ImageIndex = 36
+      OnExecute = ToolsSQLExecute
+    end
+    object ExtToolsConfigure: TAction
+      Category = 'Tool'
+      Caption = '&Configure Tools ...'
+      OnExecute = ExtToolsConfigureExecute
+    end
+    object ExtToolDropDown: TAction
+      Category = 'Tool'
+      Caption = '&Tools'
+      OnExecute = ExtToolDropDownExecute
+    end
+    object DatabaseBackup: TAction
+      Category = 'Backup'
+      Caption = '&Backup ...'
+      Hint = 'Back up an InterBase database'
+      ImageIndex = 22
+      OnExecute = DatabaseBackupExecute
+      OnUpdate = ServerConnectedUpdate
+    end
+    object DatabaseRestore: TAction
+      Category = 'Backup'
+      Caption = '&Restore ...'
+      Hint = 'Restore an InterBase database'
+      ImageIndex = 23
+      OnExecute = DatabaseRestoreExecute
+      OnUpdate = ServerConnectedUpdate
+    end
+    object BackupRestoreModifyAlias: TAction
+      Category = 'Backup'
+      Caption = '&Modify Backup Alias ...'
+      Hint = 'Modify an existing backup alias'
+      OnExecute = BackupRestoreModifyAliasExecute
+      OnUpdate = BackupRestoreAliasUpdate
+    end
+    object BackupRestoreRemoveAlias: TAction
+      Category = 'Backup'
+      Caption = '&Delete Alias'
+      Hint = 'Delete the current backup alias'
+      OnExecute = BackupRestoreRemoveAliasExecute
+      OnUpdate = BackupRestoreAliasUpdate
+    end
+    object ViewServerLog: TAction
+      Category = 'Log'
+      Caption = '&View Logfile ...'
+      Hint = 'View the INTERBASE.LOG file for the current server'
+      ImageIndex = 27
+      OnExecute = ServerViewLogExecute
+      OnUpdate = ServerConnectedUpdate
+    end
+    object ObjectDescription: TAction
+      Category = 'DBObject'
+      Caption = 'Edit &Description ...'
+      Hint = 'Change the decription for an object'
+      OnExecute = ObjectDescriptionExecute
+      OnUpdate = ObjectDescriptionUpdate
+    end
+    object ObjectCreate: TAction
+      Category = 'DBObject'
+      Caption = '&Create ...'
+      Hint = 'Create a new object of the selected type'
+    end
+    object ObjectModify: TAction
+      Category = 'DBObject'
+      Caption = '&Modify ...'
+      Hint = 'Modify the current object'
+      OnUpdate = ObjectModifyUpdate
+    end
+    object ObjectDelete: TAction
+      Category = 'DBObject'
+      Caption = '&Drop ...'
+      Hint = 'Delete the current object'
+      OnExecute = ObjectDeleteExecute
+      OnUpdate = ObjectDeleteUpdate
+    end
+    object ObjectExtract: TAction
+      Category = 'DBObject'
+      Caption = 'E&xtract ...'
+      Hint = 'Extract metada for the current object'
+      OnExecute = ObjectExtractExecute
+    end
+    object ObjectProperties: TAction
+      Category = 'DBObject'
+      Caption = '&Properties ...'
+      OnExecute = lvObjectsDblClick
+    end
+    object ObjectRefresh: TAction
+      Category = 'DBObject'
+      Caption = '&Refresh'
+      OnExecute = ObjectRefreshExecute
+    end
   end
   object EditPopup: TPopupMenu
-    Left = 570
-    Top = 329
+    Left = 572
+    Top = 328
     object Cut1: TMenuItem
       Action = EditCut
     end
@@ -11554,7 +11600,7 @@ object frmMain: TfrmMain
     end
   end
   object pmDBObjects: TPopupMenu
-    Left = 505
+    Left = 504
     Top = 136
     object EditDescription1: TMenuItem
       Action = ObjectDescription
@@ -11571,44 +11617,6 @@ object frmMain: TfrmMain
     object Properties5: TMenuItem
       Action = ObjectProperties
       Default = True
-    end
-  end
-  object DBObjectProperties: TActionList
-    Left = 551
-    Top = 197
-    object ObjectDescription: TAction
-      Caption = 'Edit &Description ...'
-      Hint = 'Change the decription for an object'
-      OnExecute = ObjectDescriptionExecute
-      OnUpdate = ObjectDescriptionUpdate
-    end
-    object ObjectCreate: TAction
-      Caption = '&Create ...'
-      Hint = 'Create a new object of the selected type'
-    end
-    object ObjectModify: TAction
-      Caption = '&Modify ...'
-      Hint = 'Modify the current object'
-      OnUpdate = ObjectModifyUpdate
-    end
-    object ObjectDelete: TAction
-      Caption = '&Drop ...'
-      Hint = 'Delete the current object'
-      OnExecute = ObjectDeleteExecute
-      OnUpdate = ObjectDeleteUpdate
-    end
-    object ObjectExtract: TAction
-      Caption = 'E&xtract ...'
-      Hint = 'Extract metada for the current object'
-      OnExecute = ObjectExtractExecute
-    end
-    object ObjectProperties: TAction
-      Caption = '&Properties ...'
-      OnExecute = lvObjectsDblClick
-    end
-    object ObjectRefresh: TAction
-      Caption = '&Refresh'
-      OnExecute = ObjectRefreshExecute
     end
   end
 end

@@ -121,7 +121,7 @@ var
   lTmp,
   lCurrLine: string;
 begin
-  frmBackupAliasProperties := TfrmBackupAliasProperties.Create(Application);
+  frmBackupAliasProperties := TfrmBackupAliasProperties.Create(Application.MainForm);
   try
     // set server name and backup alias
     frmBackupAliasProperties.FBackupAliasNode := BackupAliasNode;

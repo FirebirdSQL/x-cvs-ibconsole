@@ -16,6 +16,7 @@ object frmDBConnect: TfrmDBConnect
   OldCreateOrder = False
   Position = poScreenCenter
   Scaled = False
+  OnCreate = FormCreate
   OnHelp = FormHelp
   PixelsPerInch = 96
   TextHeight = 13
