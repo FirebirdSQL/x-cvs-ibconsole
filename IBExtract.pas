@@ -965,6 +965,12 @@ begin
          ProcName)]));
       GetProcedureArgs(ProcName);
       FMetaData.Add(Format(CreateProcedureStr2, [ProcTerm, NEWLINE]));
+      qryProcedures.Next;
+    end;
+    qryProcedures.Close;
+    qryProcedures.ExecQuery;
+    while not qryProcedures.Eof do
+    begin
       SList.Clear;
       ProcName := Trim(qryProcedures.FieldByName('RDB$PROCEDURE_NAME').AsString);
       FMetaData.Add(Format('%sALTER PROCEDURE %s ', [NEWLINE,
@@ -1864,11 +1870,13 @@ begin
         [GetIndexSegments(qryForeign.FieldByName('RELC2_INDEX_NAME').AsString)]);
 
       { Add the referential actions, if any }
-      if not qryForeign.FieldByName('REFC_UPDATE_RULE').IsNull then
+      if (not qryForeign.FieldByName('REFC_UPDATE_RULE').IsNull) and
+         (Trim(qryForeign.FieldByName('REFC_UPDATE_RULE').AsString) <> 'RESTRICT') then
         Line := Line + Format(' ON UPDATE %s',
            [Trim(qryForeign.FieldByName('REFC_UPDATE_RULE').AsString)]);
 
-      if not qryForeign.FieldByName('REFC_DELETE_RULE').IsNull then
+      if (not qryForeign.FieldByName('REFC_DELETE_RULE').IsNull) and
+         (Trim(qryForeign.FieldByName('REFC_DELETE_RULE').AsString) <> 'RESTRICT') then
         Line := Line + Format(' ON DELETE %s',
            [Trim(qryForeign.FieldByName('REFC_DELETE_RULE').AsString)]);
 

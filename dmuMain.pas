@@ -1371,7 +1371,7 @@ begin
               lTriggerType := '';
             end;
 
-            if FieldByName('RDB$TRIGGER_TYPE').AsInteger = 1 then
+            if FieldByName('RDB$TRIGGER_INACTIVE').AsInteger = 1 then
               lActive := 'InActive'
             else
               lActive := 'Active';
