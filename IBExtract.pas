@@ -8,10 +8,11 @@
 {    an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, either              }
 {    express or implied. See the License for the specific language       }
 {    governing rights and limitations under the License.                 }
-{    The Original Code was created by InterBase Software Corporation     }
-{       and its successors.                                              }
-{    Portions created by Inprise Corporation are Copyright (C) Inprise   }
-{       Corporation. All Rights Reserved.                                }
+{                                                                        }
+{    The Original Code was created by Jeff Overcash.                     } 
+{    Portions based upon code by Inprise Corporation are Copyright (C)   }
+{       Inprise Corporation. All Rights Reserved.                        }
+{                                                                        }
 {    IBX Version 4.2 or higher required                                  }
 {    Contributor(s): Jeff Overcash                                       }
 {                                                                        }
@@ -26,14 +27,14 @@ uses
   IBSQL, IBUtils, IBHeader, IB, IBIntf;
 
 type
-	TExtractObjectTypes =
-  	 (eoDatabase, eoDomain, eoTable, eoView, eoProcedure, eoFunction,
-    	eoGenerator, eoException, eoBLOBFilter, eoRole, eoTrigger, eoForeign,
-      eoIndexes, eoChecks, eoData);
+  TExtractObjectTypes =
+    (eoDatabase, eoDomain, eoTable, eoView, eoProcedure, eoFunction,
+     eoGenerator, eoException, eoBLOBFilter, eoRole, eoTrigger, eoForeign,
+     eoIndexes, eoChecks, eoData);
 
   TExtractType =
-  	 (etDomain, etTable, etRole, etTrigger, etForeign,
-      etIndex, etData, etGrant, etCheck);
+    (etDomain, etTable, etRole, etTrigger, etForeign,
+     etIndex, etData, etGrant, etCheck);
 
   TExtractTypes = Set of TExtractType;
 
@@ -212,8 +213,6 @@ const
   obj_user_group = 12;
   obj_sql_role = 13;
 
-procedure Register;
-
 implementation
 
 const
@@ -245,22 +244,6 @@ const
     'WHERE ' +
     '  FDIM.RDB$FIELD_NAME = :FIELDNAME ' +
     'ORDER BY FDIM.RDB$DIMENSION';
-
-procedure Register;
-begin
-  RegisterComponents('InterBase', [TIBExtract]);
-end;
-
-function QuoteIdentifier(Dialect: Integer; Value: String): String;
-begin
-  Value := Trim(Value);
-  if Dialect = 1 then
-    Value := AnsiUpperCase(Value)
-  else
-    Value := '"' + Value + '"';
-  Result := Value;
-end;
-
 
 { TIBExtract }
 
@@ -470,6 +453,8 @@ begin
       end
       else
       begin
+        FieldType := qryTables.FieldByName('RDB$FIELD_TYPE').AsInteger;
+        FieldScale := qryTables.FieldByName('RDB$FIELD_SCALE').AsInteger;
         if not ((Copy(qryTables.FieldByName('RDB$FIELD_NAME1').AsString, 1, 4) = 'RDB$') and
           (qryTables.FieldByName('RDB$FIELD_NAME1').AsString[5] in ['0'..'9'])) and
           (qryTables.FieldByName('RDB$SYSTEM_FLAG').AsInteger <> 1) then
@@ -484,8 +469,6 @@ begin
             Column := Column + GetCharacterSets(qryTables.FieldByName('RDB$CHARACTER_SET_ID').AsShort,
                              Collation, true);
           end;
-          if qryTables.FieldByName('RDB$NULL_FLAG').AsInteger = 1 then
-            Column := Column + ' NOT NULL';
         end
         else
         begin
@@ -493,8 +476,6 @@ begin
           for i := Low(Columntypes) to High(ColumnTypes) do
           begin
             PrecisionKnown := false;
-            FieldType := qryTables.FieldByName('RDB$FIELD_TYPE').AsInteger;
-            FieldScale := qryTables.FieldByName('RDB$FIELD_SCALE').AsInteger;
             if qryTables.FieldByname('RDB$FIELD_TYPE').AsShort = ColumnTypes[i].SQLType then
             begin
 
@@ -541,7 +522,7 @@ begin
                       Column := Column + ColumnTypes[i].TypeName;
               end;
             end;
-          end; 
+          end;
           if FieldType in [blr_text, blr_varying] then
             if qryTables.FieldByName('RDB$CHARACTER_LENGTH').IsNull then
               Column := Column + Format('(%d)', [qryTables.FieldByName('RDB$FIELD_LENGTH').AsInteger])
@@ -580,58 +561,57 @@ begin
             Column := Column + GetCharacterSets(CharSetId, 0, false);
             intchar := 1;
           end;
+        end;
+
+        { Handle defaults for columns }
+        { Originally This called PrintMetadataTextBlob,
+            should no longer need }
+        if not qryTables.FieldByName('RDB$DEFAULT_SOURCE').IsNull then
+          Column := Column + ' ' + qryTables.FieldByName('RDB$DEFAULT_SOURCE').AsString;
 
 
-          { Handle defaults for columns }
-          { Originally This called PrintMetadataTextBlob,
-              should no longer need }
-          if not qryTables.FieldByName('RDB$DEFAULT_SOURCE').IsNull then
-            Column := Column + ' ' + qryTables.FieldByName('RDB$DEFAULT_SOURCE').AsString;
+        { The null flag is either 1 or null (for nullable) .  if there is
+          a constraint name, print that too.  Domains cannot have named
+          constraints.  The column name is in rdb$trigger_name in
+          rdb$check_constraints.  We hope we get at most one row back. }
 
+        if qryTables.FieldByName('RDB$NULL_FLAG').AsInteger = 1 then
+        begin
+          qryConstraints.Params.ByName('FIELDNAME').AsString := qryTables.FieldByName('RDB$FIELD_NAME').AsString;
+          qryConstraints.Params.ByName('RELATIONNAME').AsString := qryTables.FieldByName('RDB$RELATION_NAME').AsString;
+          qryConstraints.ExecQuery;
 
-          { The null flag is either 1 or null (for nullable) .  if there is
-            a constraint name, print that too.  Domains cannot have named
-            constraints.  The column name is in rdb$trigger_name in
-            rdb$check_constraints.  We hope we get at most one row back. }
-
-          if qryTables.FieldByName('RDB$NULL_FLAG').AsInteger = 1 then
+          while not qryConstraints.Eof do
           begin
-            qryConstraints.Params.ByName('FIELDNAME').AsString := qryTables.FieldByName('RDB$FIELD_NAME').AsString;
-            qryConstraints.Params.ByName('RELATIONNAME').AsString := qryTables.FieldByName('RDB$RELATION_NAME').AsString;
-            qryConstraints.ExecQuery;
-
-            while not qryConstraints.Eof do
-            begin
-              if Pos('INTEG', qryConstraints.FieldByName('RDB$CONSTRAINT_NAME').AsString) <> 1 then
-                Column := Column + Format(' CONSTRAINT %s',
-                  [ QuoteIdentifier( FDatabase.SQLDialect,
-                        qryConstraints.FieldByName('RDB$CONSTRAINT_NAME').AsString)]);
-              qryConstraints.Next;
-            end;
-            qryConstraints.Close;
-            Column := Column + ' NOT NULL';
+            if Pos('INTEG', qryConstraints.FieldByName('RDB$CONSTRAINT_NAME').AsString) <> 1 then
+              Column := Column + Format(' CONSTRAINT %s',
+                [ QuoteIdentifier( FDatabase.SQLDialect,
+                      qryConstraints.FieldByName('RDB$CONSTRAINT_NAME').AsString)]);
+            qryConstraints.Next;
           end;
+          qryConstraints.Close;
+          Column := Column + ' NOT NULL';
+        end;
 
-          if ((FieldType in [blr_text, blr_varying]) or
-              (FieldType = blr_blob)) and
-             (not qryTables.FieldByName('RDB$CHARACTER_SET_ID').IsNull) and
-             (qryTables.FieldByName('RDB$CHARACTER_SET_ID').AsInteger <> 0) and
-             (intchar <> 0) then
-          begin
-            Collation := 0;
-            if not qryTables.FieldByName('RDB$COLLATION_ID1').IsNull then
-              Collation := qryTables.FieldByName('RDB$COLLATION_ID1').AsInteger
-            else
-              if not qryTables.FieldByName('RDB$COLLATION_ID').IsNull then
-                Collation := qryTables.FieldByName('RDB$COLLATION_ID').AsInteger;
+        if ((FieldType in [blr_text, blr_varying]) or
+            (FieldType = blr_blob)) and
+           (not qryTables.FieldByName('RDB$CHARACTER_SET_ID').IsNull) and
+           (qryTables.FieldByName('RDB$CHARACTER_SET_ID').AsInteger <> 0) and
+           (intchar <> 0) then
+        begin
+          Collation := 0;
+          if not qryTables.FieldByName('RDB$COLLATION_ID1').IsNull then
+            Collation := qryTables.FieldByName('RDB$COLLATION_ID1').AsInteger
+          else
+            if not qryTables.FieldByName('RDB$COLLATION_ID').IsNull then
+              Collation := qryTables.FieldByName('RDB$COLLATION_ID').AsInteger;
 
-            CharSetId := 0;
-            if not qryTables.FieldByName('RDB$CHARACTER_SET_ID').IsNull then
-              CharSetId := qryTables.FieldByName('RDB$CHARACTER_SET_ID').AsInteger;
+          CharSetId := 0;
+          if not qryTables.FieldByName('RDB$CHARACTER_SET_ID').IsNull then
+            CharSetId := qryTables.FieldByName('RDB$CHARACTER_SET_ID').AsInteger;
 
-            if Collation <> 0 then
-              Column := Column + GetCharacterSets(CharSetId, Collation, true);
-          end;
+          if Collation <> 0 then
+            Column := Column + GetCharacterSets(CharSetId, Collation, true);
         end;
       end;
       qryTables.Next;

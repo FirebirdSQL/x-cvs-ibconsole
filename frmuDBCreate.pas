@@ -389,7 +389,7 @@ begin
   sgDatabaseFiles.Cells[1,0] := 'Size (Pages)';
 
   sgOptions.Cells[OPTION_NAME_COL,PAGE_SIZE_ROW] := 'Page Size';
-  sgOptions.Cells[OPTION_VALUE_COL,PAGE_SIZE_ROW] := '1024';
+  sgOptions.Cells[OPTION_VALUE_COL,PAGE_SIZE_ROW] := '4096';
 
   sgOptions.Cells[OPTION_NAME_COL,DEFAULT_CHARSET_ROW] := 'Default Character Set';
   sgOptions.Cells[OPTION_VALUE_COL,DEFAULT_CHARSET_ROW] := 'None';

@@ -28,25 +28,34 @@ uses
   IBTable;
 
 type
-  TTblData = record
+  TTblData = class
+  public
     Columns,
     Indexes,
     Triggers,
     CheckConst,
     UniqueConst,
     RefConst: TStringList;
+    constructor Create;
+    destructor Destroy; override;
   end;
 
-  TProcedureData = record
+  TProcedureData = class
+  public
     Params: TStringList;
     Source: TStringList;
+    constructor Create;
+    destructor Destroy; override;
   end;
 
-  TFunctionData = record
+  TFunctionData = class
+  public
     Params: TStringList;
     ReturnVal,
     EntryPoint,
     ModuleName: String;
+    constructor Create;
+    destructor Destroy; override;
   end;
 
   TTableData = array of TTblData;
@@ -178,7 +187,7 @@ type
 
     FMetadataRefreshList: array of boolean;
     FRefreshList: array of boolean;
-    
+
     FIndex,
     FObjType: Integer;
     FShowSystem: boolean;
@@ -275,52 +284,40 @@ begin
   if Assigned(FObjectArray) then
     FObjectArray.Free;
 
-  for lCnt := 0 to High(FTableData) do
-  begin
-    with FTableData[lCnt] do
-    begin
-      if Assigned (Columns) then Columns.Free;
-      if Assigned (Indexes) then Indexes.Free;
-      if Assigned (TriggerS) then Triggers.Free;
-      if Assigned (CheckConst) then CheckConst.Free;
-      if Assigned (UniqueConst) then UniqueConst.Free;
-      if Assigned (RefConst) then RefConst.Free;
-    end;
-  end;
+  for lCnt := Low(FTableData) to High(FTableData) do
+    FreeAndNil(FTableData[lCnt]);
 
-  for lCnt := 0 to High(FProcedureData) do
-  begin
-    with FProcedureData[lCnt] do
-    begin
-      if Assigned(Params) then Params.Free;
-      if Assigned(Source) then Source.Free;
-    end;
-  end;
+  for lCnt := Low(FProcedureData) to High(FProcedureData) do
+    FreeAndNil(FProcedureData[lCnt]);
 
-  for lCnt := 0 to High(FFunctionData) do
-    if Assigned (FFunctionData[lCnt].Params) then FFunctionData[lCnt].Params.Free;
-
+  for lCnt := Low(FFunctionData) to High(FFunctionData) do
+    FreeAndNil(FFunctionData[lCnt]);
 
   if Assigned(FFilterData) then
     FFilterData.Free;
 
-  if Assigned (FRoleData) then FRoleData.Free;
-  if Assigned (FExceptionData) then FExceptionData.Free;
-  if Assigned (FViewData) then FViewData.Free;
-  if Assigned (FGenData) then FGenData.Free;
-  if Assigned (FDomainData) then FDomainData.Free;
+  if Assigned(FRoleData) then
+    FRoleData.Free;
+  if Assigned(FExceptionData) then
+    FExceptionData.Free;
+  if Assigned(FViewData) then
+    FViewData.Free;
+  if Assigned(FGenData) then
+    FGenData.Free;
+  if Assigned(FDomainData) then
+    FDomainData.Free;
 
-  if Assigned (FDataSet) then
+  if Assigned(FDataSet) then
     FDataSet.Free;
 
-  if Assigned (FTransaction) then
+  if Assigned(FTransaction) then
   begin
     if FTransaction.InTransaction then
       FTransaction.Commit;
     FTransaction.Free;
   end;
 
-  inherited;
+  inherited Destroy;
 end;
 
 procedure TfrmObjectView.InitDlg(ObjType: Integer;
@@ -345,8 +342,15 @@ begin
   FObjName := Trim(ObjName);
   Caption := Format('Properties for: %s',[Trim(ObjName)]);
   Icon := ObjIcon;
-  FObjNameList := TStringList.Create;
-  FObjectArray := TStringList.Create;
+  if not Assigned(FObjNameList) then
+    FObjNameList := TStringList.Create
+  else
+    FObjNameList.Clear;
+  if not Assigned(FObjectArray) then
+    FObjectArray := TStringList.Create
+  else
+    FObjectArray.Clear;
+    
   cbObjectList.Items.Clear;
   reMetadata.Clear;
   for lCnt := 1 to ObjList.Count -1 do
@@ -452,7 +456,7 @@ begin
   end;
   reMetadata.Clear;
   pgcPropertiesChange(pgcProperties);
-  frmMain.UpdateWindowList(Caption, Self);  
+  frmMain.UpdateWindowList(Caption, Self);
 end;
 
 constructor TfrmObjectView.Create(AOwner: TComponent);
@@ -460,7 +464,7 @@ begin
   inherited;
   Visible := false;
 
-  FDataSet := TIBDataSet.Create (self);
+  FDataSet := TIBDataSet.Create(nil);
   with FDataSet do
   begin
     Database := FDatabase;
@@ -468,7 +472,6 @@ begin
     ObjectView := true;
     SparseArrays := true;
   end;
-
 end;
 
 procedure TfrmObjectView.pgcPropertiesChange(Sender: TObject);
@@ -965,16 +968,19 @@ begin
     dmMain.GetDomainData (FDomainData, FDatabase, FShowSystem);
   end;
   TmpList := TStringList.create;
-  TmpList.Add(Format('Type%sCharacter Set%sCollation%sDefault Value%sAllow Nulls', [DEL,DEL,DEL,DEL]));
-  TmpList.Add (FDomainData.Strings[FIdx]);
-  FillList (lVDomains, TmpList);
+  try
+    TmpList.Add(Format('Type%sCharacter Set%sCollation%sDefault Value%sAllow Nulls', [DEL,DEL,DEL,DEL]));
+    TmpList.Add(FDomainData.Strings[FIdx]);
+    FillList(lVDomains, TmpList);
 
-  tmpString := FDomainData.Strings[FIdx];
-  for cnt := 0 to lvDomains.Items[0].SubItems.Count - 1 do
-    GetNextField (tmpString, DEL);
+    tmpString := FDomainData.Strings[FIdx];
+    for cnt := 0 to lvDomains.Items[0].SubItems.Count - 1 do
+      GetNextField(tmpString, DEL);
 
-  reConstraint.Text := GetNextField(tmpString, DEL);
-  TmpList.Free;
+    reConstraint.Text := GetNextField(tmpString, DEL);
+  finally
+    TmpList.Free;
+  end;
 end;
 
 procedure TfrmObjectView.ShowColumnsExecute(Sender: TObject);
@@ -988,8 +994,8 @@ begin
     SplitterWnd.Visible := false;
   end;
   
-  if not Assigned (FTableData[Fidx].Columns) then
-    FTableData[Fidx].Columns := TStringList.Create;
+  if not Assigned(FTableData[Fidx]) then
+    FTableData[Fidx] := TTblData.Create;
 
   if (FTableData[Fidx].Columns.Count <= 0) or FRefreshList[FIdx] = true then
   begin
@@ -998,7 +1004,7 @@ begin
     dmMain.GetColumnList(FTableData[Fidx].Columns, FDatabase, FObjName);
   end;
 
-  FillList (lvTableObjects, FTableData[Fidx].Columns);
+  FillList(lvTableObjects, FTableData[Fidx].Columns);
 
   if FObjType = NODE_VIEWS then
     GetViewProperties;
@@ -1031,38 +1037,47 @@ var
   loListColumn: TListColumn;
   lsCurrLine: string;
   i: integer;
+  WasVisible: boolean;
 
 begin
-  ListObject.Items.BeginUpdate;
-  ListObject.Items.Clear;
+  // to prevent delay
+  WasVisible := ListObject.Visible;
+  ListObject.Visible := FALSE;
+  try
 
-  ListObject.Columns.Clear;
+    ListObject.Items.BeginUpdate;
+    ListObject.Items.Clear;
 
-  ListObject.AllocBy := StringList.Count;
+    ListObject.Columns.Clear;
 
-  { The column Headers are stored in element 0 }
-  lsCurrLine := StringList.Strings[0];
-  while Length(lsCurrLine) > 0 do
-  begin
-    loListColumn := ListObject.Columns.Add;
-    loListColumn.Caption := GetNextField(lsCurrLine, DEL);
-    loListColumn.Width := ColumnHeaderWidth;
-  end;
+    ListObject.AllocBy := StringList.Count;
 
-  for i := 1  to StringList.Count - 1 do
-  begin
-    lsCurrLine := StringList.Strings[i];
-    loListItem := ListObject.Items.Add;
-    loListItem.Caption := GetNextField(lsCurrLine, DEL);
-
+    { The column Headers are stored in element 0 }
+    lsCurrLine := StringList.Strings[0];
     while Length(lsCurrLine) > 0 do
     begin
-      loListItem.SubItems.Add(GetNextField(lsCurrLine, DEL));
+      loListColumn := ListObject.Columns.Add;
+      loListColumn.Caption := GetNextField(lsCurrLine, DEL);
+      loListColumn.Width := ColumnHeaderWidth;
     end;
+
+    for i := 1  to StringList.Count - 1 do
+    begin
+      lsCurrLine := StringList.Strings[i];
+      loListItem := ListObject.Items.Add;
+      loListItem.Caption := GetNextField(lsCurrLine, DEL);
+
+      while Length(lsCurrLine) > 0 do
+      begin
+        loListItem.SubItems.Add(GetNextField(lsCurrLine, DEL));
+      end;
+    end;
+    ListObject.Items.EndUpdate;
+    if ListObject.Items.Count > 0 then
+      ListObject.Items[0].Selected := true;
+  finally
+    ListObject.Visible := WasVisible;
   end;
-  ListObject.Items.EndUpdate;
-  if ListObject.Items.Count > 0 then
-    ListObject.Items[0].Selected := true;
 end;
 
 procedure TfrmObjectView.ShowTriggersExecute(Sender: TObject);
@@ -1075,8 +1090,8 @@ begin
   lvTableObjects.Height := lvTableObjects.Parent.Height div 2;
   SplitterWnd.Visible := true;
   SplitterWnd.Top := lvTableObjects.Height + lvTableObjects.Top;
-  if not Assigned (FTableData[Fidx].Triggers) then
-    FTableData[Fidx].Triggers := TStringList.Create;
+  if not Assigned(FTableData[Fidx]) then
+    FTableData[Fidx] := TTblData.Create;
 
   if (FTableData[Fidx].Triggers.Count <= 0) or FRefreshList[FIdx] = true then
   begin
@@ -1117,8 +1132,8 @@ begin
   lvTableObjects.Height := lvTableObjects.Parent.Height div 2;
   SplitterWnd.Visible := true;
   SplitterWnd.Top := lvTableObjects.Height + lvTableObjects.Top;
-  if not Assigned (FTableData[Fidx].CheckConst) then
-    FTableData[Fidx].CheckConst := TStringList.Create;
+  if not Assigned(FTableData[Fidx]) then
+    FTableData[Fidx] := TTblData.Create;
 
   if (FTableData[Fidx].CheckConst.Count <= 0) or FRefreshList[FIdx] = true then
   begin
@@ -1140,8 +1155,8 @@ begin
   lvTableObjects.Align := alClient;
   lvTableObjects.OnChange := nil;
   SplitterWnd.Visible := false;
-  if not Assigned (FTableData[Fidx].Indexes) then
-    FTableData[Fidx].Indexes := TStringList.Create;
+  if not Assigned(FTableData[Fidx]) then
+    FTableData[Fidx] := TTblData.Create;
 
   if (FTableData[Fidx].Indexes.Count <= 0) or FRefreshList[FIdx] = true then
   begin
@@ -1157,11 +1172,11 @@ procedure TfrmObjectView.ShowUniqueConstraintsExecute(Sender: TObject);
 begin
   tbUnique.Down := true;
   reTriggerSource.Visible := false;
-  lvTableObjects.Align := alClient;  
+  lvTableObjects.Align := alClient;
   lvTableObjects.OnChange := nil;
   SplitterWnd.Visible := false;
-  if not Assigned (FTableData[Fidx].UniqueConst) then
-    FTableData[Fidx].UniqueConst := TStringList.Create;
+  if not Assigned(FTableData[Fidx]) then
+    FTableData[Fidx] := TTblData.Create;
 
   if (FTableData[Fidx].UniqueConst.Count <= 0) or FRefreshList[FIdx] = true then
   begin
@@ -1182,8 +1197,8 @@ begin
   lvTableObjects.Align := alClient;
   lvTableObjects.OnChange := nil;
   SplitterWnd.Visible := false;
-  if not Assigned (FTableData[Fidx].RefConst) then
-    FTableData[Fidx].RefConst := TStringList.Create;
+  if not Assigned(FTableData[Fidx]) then
+    FTableData[Fidx] := TTblData.Create;
 
   if (FTableData[Fidx].RefConst.Count <= 0) or FRefreshList[FIdx] = true then
   begin
@@ -1197,11 +1212,8 @@ end;
 
 procedure TfrmObjectView.GetProcedureProperties;
 begin
-  if not Assigned (FProcedureData[Fidx].Params) then
-  begin
-    FProcedureData[Fidx].Params := TStringList.Create;
-    FProcedureData[Fidx].Source := TStringList.Create;
-  end;
+  if not Assigned(FProcedureData[Fidx]) then
+    FProcedureData[Fidx] := TProcedureData.Create;
 
   if (FProcedureData[Fidx].Source.Count = 0) or FRefreshList[FIdx] = true then
   begin
@@ -1229,14 +1241,15 @@ procedure TfrmObjectView.ShowProcSource(Sender: TObject; Item: TListItem;
 begin
   reProcSource.Lines.BeginUpdate;
   reProcSource.Lines.Clear;
-  reProcSource.Lines.AddStrings (FProcedureData[Fidx].Source);
+  if Assigned(FProcedureData[Fidx]) then
+    reProcSource.Lines.AddStrings(FProcedureData[Fidx].Source);
   reProcSource.Lines.EndUpdate
 end;
 
 procedure TfrmObjectView.GetFunctionProperties;
 begin
-  if not Assigned(FFunctionData[FIdx].Params) then
-    FFunctionData[Fidx].Params := TStringList.Create;
+  if not Assigned(FFunctionData[FIdx]) then
+    FFunctionData[Fidx] := TFunctionData.Create;
 
   if (Length(FFunctionData[FIdx].ModuleName) = 0) or FRefreshList[FIdx] = true then
   begin
@@ -1383,10 +1396,12 @@ begin
       _Read := true;
     end;
   Reg := TRegistry.Create;
-  with Reg do begin
+  with Reg do
+  try
     OpenKey(gRegSettingsKey,false);
     WriteBinaryData('ObjState', State, sizeof(State));
     CloseKey;
+  finally
     Free;
   end;
   frmMain.UpdateWindowList (Caption, Self, True);
@@ -1399,6 +1414,57 @@ begin
   for lCnt := Low(FRefreshList) to High(FRefreshList) do
     FRefreshList[lCnt] := true;
   pgcPropertiesChange(pgcProperties);
+end;
+
+{ TTblData }
+
+constructor TTblData.Create;
+begin
+  Columns := TStringList.Create;
+  Indexes := TStringList.Create;
+  Triggers := TStringList.Create;
+  CheckConst := TStringList.Create;
+  UniqueConst := TStringList.Create;
+  RefConst := TStringList.Create;
+end;
+
+destructor TTblData.Destroy;
+begin
+  Columns.Free;
+  Indexes.Free;
+  Triggers.Free;
+  CheckConst.Free;
+  UniqueConst.Free;
+  RefConst.Free;
+  inherited Destroy;
+end;
+
+{ TProcedureData }
+
+constructor TProcedureData.Create;
+begin
+  Params := TStringList.Create;
+  Source := TStringList.Create;
+end;
+
+destructor TProcedureData.Destroy;
+begin
+  Params.Free;
+  Source.Free;
+  inherited;
+end;
+
+{ TFunctionData }
+
+constructor TFunctionData.Create;
+begin
+  Params := TStringList.Create;
+end;
+
+destructor TFunctionData.Destroy;
+begin
+  Params.Free;
+  inherited;
 end;
 
 end.

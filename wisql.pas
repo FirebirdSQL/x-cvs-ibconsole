@@ -178,8 +178,6 @@ type
     procedure DialectUpdate(Sender: TObject);
     procedure UpdateCursor(Sender: TObject);
     procedure reSqlInputKeyPress(Sender: TObject; var Key: Char);
-    procedure reSqlInputKeyDown(Sender: TObject; var Key: Word;
-      Shift: TShiftState);
     procedure TransactionExecute(Sender: TObject);
     procedure cbServersChange(Sender: TObject);
     procedure FileOptionsExecute(Sender: TObject);
@@ -270,7 +268,7 @@ uses frmuMessage, zluGlobal, frmuSQLOptions, frmuDisplayBlob,
      frmuMain, IBSQL, RichEdit;
 
 type
-  TWinState = record
+  TWinState = packed record
     _Top,
     _Left,
     _Height,
@@ -283,29 +281,26 @@ const
   OBJECTNAME = '\ISQL';
 {$R *.DFM}
 
-///////////////////////////////////////////////////////////////
 procedure TdlgWisql.UpdateTransactionStatus(const active: boolean);
 begin
   if active then
   begin
     stbISQL.Panels[3].Text := 'Transaction is ACTIVE.';
     TransactionCommit.Enabled := true;
-    TransactionRollback.Enabled := true;    
+    TransactionRollback.Enabled := true;
   end
   else begin
     stbISQL.Panels[3].Text := 'No active transaction.';
     TransactionCommit.Enabled := false;
-    TransactionRollback.Enabled := false;    
+    TransactionRollback.Enabled := false;
   end
 end;
 
-////////////////////////////////////////////////////////////
 procedure TdlgWisql.QuerySaveOutputExecute(Sender: TObject);
 begin
   SaveOutput;
 end;
 
-/////////////////////////////////////////////////////////////
 procedure TdlgWisql.QueryNextExecute(Sender: TObject);
 begin
   try
@@ -315,7 +310,6 @@ begin
   end;
 end;
 
-/////////////////////////////////////////////////////////////
 procedure TdlgWisql.QueryPreviousExecute(Sender: TObject);
 begin
   try
@@ -325,7 +319,6 @@ begin
   end;
 end;
 
-/////////////////////////////////////////////////////////////
 procedure TdlgWisql.QuerySaveScriptExecute(Sender: TObject);
 var
   lSaveDialog: TSaveDialog;
@@ -352,7 +345,6 @@ begin
   end;
 end;
 
-/////////////////////////////////////////////////////////////
 procedure TdlgWisql.QueryLoadScriptExecute(Sender: TObject);
 var
   lOpenDialog: TOpenDialog;
@@ -388,7 +380,6 @@ begin
   end;
 end;
 
-/////////////////////////////////////////////////////////////
 procedure TdlgWisql.QueryExecuteExecute(Sender: TObject);
 var
   ISQLObj: TIBSQLObj;
@@ -495,13 +486,11 @@ begin
   end;
 end;
 
-/////////////////////////////////////////////////////////////
 procedure TdlgWisql.UpdateOutputWindow(const Data: String);
 begin
   reSqLOutput.Lines.Add (Data);
 end;
 
-/////////////////////////////////////////////////////////////
 procedure TdlgWisql.DialectChange(Sender: TObject);
 var
   tmpdialect: integer;
@@ -526,14 +515,12 @@ begin
   Dialect := TAction(Sender).Tag;
 end;
 
-/////////////////////////////////////////////////////////////
 procedure TdlgWisql.DialectUpdate(Sender: TObject);
 begin
    with Sender as TAction do
      Checked := (FCurrSQLDialect = Tag)
 end;
 
-/////////////////////////////////////////////////////////////
 procedure TdlgWisql.ShowDialog;
 begin
   reSQLInput.Lines.Clear;
@@ -572,7 +559,6 @@ begin
   frmMain.UpdateWindowList(Caption, TObject(Self));
 end;
 
-/////////////////////////////////////////////////////////////
 procedure TdlgWisql.UpdateCursor(Sender: TObject);
 const
   SColRowInfo = '%3d : %3d';
@@ -588,13 +574,17 @@ begin
   stbISQL.Panels[0].Text := Format(SColRowInfo, [CharPos.Y, CharPos.X]);
 end;
 
-/////////////////////////////////////////////////////////////
 procedure TdlgWisql.reSqlInputKeyPress(Sender: TObject; var Key: Char);
 begin
-  UpdateCursor(Sender);
+  if (Key = #10) and (GetKeyState(VK_CONTROL) < 0) then
+  begin
+    QueryExecuteExecute(Sender);
+    Key := #0;
+  end
+  else
+    UpdateCursor(Sender);
 end;
 
-/////////////////////////////////////////////////////////////
 procedure TdlgWisql.ProcessISQLEvent(const ISQLEvent: TSQLEvent;
   const SubEvent: TSQLSubEvent; const Data: Variant; const Database: TIBDatabase);
 var
@@ -647,7 +637,7 @@ begin
 
         FCurrSQLDialect := FDatabase.SQLDialect;
         FConnected := true;
-        UpdateConnectStatus(true);        
+        UpdateConnectStatus(true);
       end
       else
       begin
@@ -712,15 +702,6 @@ begin
   end;
 end;
 
-/////////////////////////////////////////////////////////////
-procedure TdlgWisql.reSqlInputKeyDown(Sender: TObject; var Key: Word;
-  Shift: TShiftState);
-begin
-  if (Key = VK_RETURN) and (ssCtrl in Shift) then
-    QueryExecuteExecute (Sender);
-end;
-
-////////////////////////////////////////////////////////////////
 procedure TdlgWisql.TransactionExecute(Sender: TObject);
 begin
   with (Sender as TAction) do
@@ -752,7 +733,6 @@ begin
     OnCreateObject (Database, NODE_UNK);
 end;
 
-//////////////////////////////////////////////////////////
 constructor TdlgWisql.Create(AOwner: TComponent);
 begin
   inherited;
@@ -767,7 +747,6 @@ begin
   FQueryBuffer := TQryList.Create;
 end;
 
-//////////////////////////////////////////////////////////
 destructor TdlgWisql.Destroy;
 begin
   FServerList.Free;
@@ -775,7 +754,6 @@ begin
   inherited;
 end;
 
-//////////////////////////////////////////////////////////
 procedure TdlgWisql.cbServersChange(Sender: TObject);
 
 begin
@@ -786,7 +764,6 @@ begin
       OnServerConnect ((Sender as TComboBox).Text);
 end;
 
-//////////////////////////////////////////////////////////
 procedure TdlgWisql.FileOptionsExecute(Sender: TObject);
 var
   origDialect: integer;
@@ -806,19 +783,16 @@ begin
     Dialect := gAppSettings[DEFAULT_DIALECT].Setting;
 end;
 
-//////////////////////////////////////////////////////////
 procedure TdlgWisql.EditFindExecute(Sender: TObject);
 begin
   FindDialog1.Execute;
 end;
 
-//////////////////////////////////////////////////////////
 procedure TdlgWisql.EditFindUpdate(Sender: TObject);
 begin
   (Sender as TAction).Enabled := (ActiveControl is TRichEdit);
 end;
 
-/////////////////////////////////////////////////////////////
 procedure TdlgWisql.QueryUpdate(Sender: TObject);
 begin
   (Sender as TAction).Enabled := (reSQlInput.Lines.Count > 0);
@@ -828,7 +802,6 @@ begin
     stbISQL.Panels[1].text := '';
 end;
 
-/////////////////////////////////////////////////////////////
 procedure TdlgWisql.QueryPrepareExecute(Sender: TObject);
 var
   ISQLObj: TIBSQLObj;
@@ -864,20 +837,18 @@ begin
   end;
 end;
 
-/////////////////////////////////////////////////////////////
 procedure TdlgWisql.dbgSQLResultsCellClick(Column: TColumn);
 begin
   if Column.Field.DataType in [ftMemo, ftBlob] then
     Column.ButtonStyle := cbsEllipsis;
 end;
 
-/////////////////////////////////////////////////////////////
 procedure TdlgWisql.dbgSQLResultsDrawColumnCell(Sender: TObject;
   const Rect: TRect; DataCol: Integer; Column: TColumn;
   State: TGridDrawState);
 var
   DisplayStr:  String;
-  
+
 begin
   with Sender as TDBGrid do begin
     if Column.Field = nil then begin
@@ -914,7 +885,6 @@ begin
   end;
 end;
 
-/////////////////////////////////////////////////////////////
 procedure TdlgWisql.dbgSQLResultsEditButtonClick(Sender: TObject);
 var
   FieldObj: TField;
@@ -937,7 +907,6 @@ begin
   end;
 end;
 
-/////////////////////////////////////////////////////////////
 procedure TdlgWisql.EditFontExecute(Sender: TObject);
 begin
   FontDialog1.Font.Assign(reSqlInput.SelAttributes);
@@ -950,7 +919,6 @@ begin
   reSqlInput.SetFocus;
 end;
 
-/////////////////////////////////////////////////////////////
 procedure TdlgWisql.SetAutoDDL(const Value: boolean);
 begin
   FAutoDDL := Value;
@@ -960,17 +928,15 @@ begin
     stbISQL.Panels[4].Text := 'AutoDDL: OFF';
 end;
 
-/////////////////////////////////////////////////////////////
 procedure TdlgWisql.SQLReference1Click(Sender: TObject);
 var
   hlpPath: String;
 begin
   inherited;
-  hlpPath := Format('%s\%s',[ExtractFilePath(Application.ExeName), SQL_REFERENCE]);
+  hlpPath := Format('%s%s',[ExtractFilePath(Application.ExeName), SQL_REFERENCE]);
   WinHelp(WindowHandle, PChar(hlpPath),HELP_FINDER,0);
 end;
 
-/////////////////////////////////////////////////////////////
 procedure TdlgWisql.FormClose(Sender: TObject; var Action: TCloseAction);
 var
   Reg: TRegistry;
@@ -1001,13 +967,11 @@ begin
     Action := caNone;
 end;
 
-/////////////////////////////////////////////////////////////
 procedure TdlgWisql.FileCloseExecute(Sender: TObject);
 begin
   Self.Close;
 end;
 
-/////////////////////////////////////////////////////////////
 procedure TdlgWisql.Print1Click(Sender: TObject);
 var
   lPrintDialog: TPrintDialog;
@@ -1038,7 +1002,6 @@ begin
   end;
 end;
 
-/////////////////////////////////////////////////////////////
 procedure TdlgWisql.Drop1Click(Sender: TObject);
 begin
   if CheckTransactionStatus (false) then
@@ -1060,7 +1023,6 @@ begin
   end;
 end;
 
-/////////////////////////////////////////////////////////////
 procedure TdlgWisql.Disconnect1Click(Sender: TObject);
 begin
   if CheckTransactionStatus (false) then
@@ -1080,7 +1042,6 @@ begin
   end;
 end;
 
-/////////////////////////////////////////////////////////////
 procedure TdlgWisql.Connect1Click(Sender: TObject);
 begin
   if CheckTransactionStatus (false) then
@@ -1097,7 +1058,6 @@ begin
   end;
 end;
 
-/////////////////////////////////////////////////////////////
 procedure TdlgWisql.Create1Click(Sender: TObject);
 begin
   if CheckTransactionStatus(false) then
@@ -1114,7 +1074,6 @@ begin
   end;
 end;
 
-/////////////////////////////////////////////////////////////
 function TdlgWisql.CheckTransactionStatus (const Closing: boolean): boolean;
 var
   retval: integer;
@@ -1199,7 +1158,6 @@ begin
   end;
 end;
 
-/////////////////////////////////////////////////////////////
 procedure TdlgWisql.FormResize(Sender: TObject);
 begin
   { On resize, force the input window to be 1/2 the size of the window }
@@ -1207,7 +1165,6 @@ begin
   reSQLInput.Refresh;
 end;
 
-/////////////////////////////////////////////////////////////
 procedure TdlgWisql.UpdateConnectStatus(const Connected: boolean);
 var
   dbString: String;
@@ -1232,20 +1189,17 @@ begin
   end;
 end;
 
-/////////////////////////////////////////////////////////////
 procedure TdlgWisql.Windows1Click(Sender: TObject);
 begin
   frmMain.ShowWindows;
 end;
 
-/////////////////////////////////////////////////////////////
 procedure TdlgWisql.SetClientDialect(const Value: integer);
 begin
   FCurrSQLDialect := value;
   stbISQL.Panels[2].Text := Format ('Client dialect %d',[FCurrSQLDialect]);
 end;
 
-/////////////////////////////////////////////////////////////
 { TQryList }
 
 procedure TQryList.AddQueryList(const Query: TStrings);
@@ -1262,19 +1216,16 @@ begin
   FAtFirst := false;
 end;
 
-/////////////////////////////////////////////////////////////
 function TQryList.AtFirstQuery: boolean;
 begin
     result := FAtFirst;
 end;
 
-/////////////////////////////////////////////////////////////
 function TQryList.AtLastQuery: boolean;
 begin
     result := FAtLast;
 end;
 
-/////////////////////////////////////////////////////////////
 procedure TQryList.ClearList;
 var
   lCnt: integer;
@@ -1288,7 +1239,6 @@ begin
   FCurrQuery := -1;
 end;
 
-/////////////////////////////////////////////////////////////
 constructor TQryList.Create;
 begin
   FCurrQuery := -1;
@@ -1296,7 +1246,6 @@ begin
   FAtFirst := true;
 end;
 
-/////////////////////////////////////////////////////////////
 destructor TQryList.Destroy;
 var
   lCnt: integer;
@@ -1306,7 +1255,6 @@ begin
   inherited;
 end;
 
-/////////////////////////////////////////////////////////////
 function TQryList.GetNextQuery: TStrings;
 begin
   if FCurrQuery < Length(FQueryArray) then
@@ -1322,7 +1270,6 @@ begin
   FAtFirst := false;
 end;
 
-/////////////////////////////////////////////////////////////
 function TQryList.GetPrevQuery: TStrings;
 begin
   if FCurrQuery >= 0 then
@@ -1338,19 +1285,16 @@ begin
   FAtLast := false;
 end;
 
-/////////////////////////////////////////////////////////////
 procedure TdlgWisql.QueryPreviousUpdate(Sender: TObject);
 begin
   (Sender as TAction).Enabled := not FQueryBuffer.AtFirstQuery;
 end;
 
-/////////////////////////////////////////////////////////////
 procedure TdlgWisql.QueryNextUpdate(Sender: TObject);
 begin
   (Sender as TAction).Enabled := not FQueryBuffer.AtLastQuery;
 end;
 
-/////////////////////////////////////////////////////////////
 procedure TdlgWisql.ShowStatistics(const Stats: TStringList);
 var
   Line,
@@ -1376,13 +1320,11 @@ begin
   lvStats.Items.EndUpdate;
 end;
 
-/////////////////////////////////////////////////////////////
 procedure TdlgWisql.FormShow(Sender: TObject);
 begin
   pgcOutput.ActivePageIndex := 0;
 end;
 
-/////////////////////////////////////////////////////////////
 procedure TdlgWisql.CheckDisconnect(Sender: TObject);
 begin
   if not CheckTransactionStatus(true) then
@@ -1390,7 +1332,6 @@ begin
   UpdateConnectStatus(false);
 end;
 
-/////////////////////////////////////////////////////////////
 procedure TdlgWisql.SaveOutput;
 var
   SaveDialog: TSaveDialog;

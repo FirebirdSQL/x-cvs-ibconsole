@@ -819,7 +819,7 @@ begin
                   FObjectWindowState._Read := false;
                 end;
 
-              FCurrSelDatabase.ObjectViewer.InitDlg (FCurrSelTreeNode.NodeType,FCurrSelTreeNode.ObjectList,
+              FCurrSelDatabase.ObjectViewer.InitDlg(FCurrSelTreeNode.NodeType,FCurrSelTreeNode.ObjectList,
                                      Selected.Caption, FCurrSelDatabase.Database, Icon, FViewSystemData, FRefetch);
               FRefetch := false;
             end;

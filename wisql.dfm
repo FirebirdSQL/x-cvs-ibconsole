@@ -43,7 +43,7 @@ object dlgWisql: TdlgWisql
     Top = 189
     Width = 634
     Height = 226
-    ActivePage = TabResults
+    ActivePage = TabData
     Align = alClient
     DockSite = True
     TabOrder = 0
@@ -143,7 +143,6 @@ object dlgWisql: TdlgWisql
       TabOrder = 0
       WordWrap = False
       OnEnter = UpdateCursor
-      OnKeyDown = reSqlInputKeyDown
       OnKeyPress = reSqlInputKeyPress
       OnSelectionChange = UpdateCursor
     end

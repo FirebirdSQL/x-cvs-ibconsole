@@ -2,7 +2,7 @@
 A=1
 B=0
 C=1
-D=0
+D=1
 E=0
 F=0
 G=1
@@ -57,7 +57,7 @@ AutoIncBuild=0
 MajorVer=1
 MinorVer=0
 Release=0
-Build=315
+Build=319
 Debug=0
 PreRelease=0
 Special=0
@@ -68,7 +68,7 @@ CodePage=1252
 [Version Info Keys]
 CompanyName=Inprise Corporation
 FileDescription=IBConsole.exe
-FileVersion=1.0.0.315
+FileVersion=1.0.0.319
 InternalName=
 LegalCopyright=Copyright © 2000 Inprise Corporation
 LegalTrademarks=
@@ -80,26 +80,32 @@ Comments=
 $(DELPHI)\Bin\dclite50.bpl=Borland Integrated Translation Environment
 $(DELPHI)\Projects\Bpl\rbIP45.bpl=ReportBuilder wwRichEdit support
 $(DELPHI)\Projects\Bpl\GxComponents5.bpl=GExperts source components
-[HistoryLists\hlConditionals]
+[HistoryLists\hlDebugSourcePath]
 Count=1
+Item0=$(DELPHI)\ibdac;$(DELPHI)\db;$(DELPHI)\midas
+[HistoryLists\hlConditionals]
+Count=2
 Item0=DEBUG_ONLY;IB6_ONLY
+Item1=DEBUG_ONLY
 [HistoryLists\hlUnitAliases]
 Count=1
 Item0=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;
 [HistoryLists\hlSearchPath]
-Count=4
+Count=3
 Item0=$(DELPHI)\ibx\packages
-Item1=$(DELPHI)\Lib\Debug;$(DELPHI)\ibx\packages
-Item2=C:\Program Files\Borland\Delphi5\IBX\Packages
-Item3=$(DELPHI)\DOA\Delphi4
+Item1=$(DELPHI)\Experts\GExperts
+Item2=$(DELPHI)\ibdac;$(DELPHI)\db;$(DELPHI)\midas
 [HistoryLists\hlUnitOutputDirectory]
 Count=2
-Item0=$(DELPHI)\lib
-Item1=$(DELPHI)\lib\debug
+Item0=$(DELPHI)\Lib
+Item1=$(DELPHI)\Lib\Debug
 [HistoryLists\hlBPLOutput]
-Count=1
+Count=3
 Item0=c:\winnt\system32
+Item1=$(DELPHI)\bin
+Item2=c:\windows\system32
 [HistoryLists\hlDCPOutput]
-Count=2
+Count=3
 Item0=$(DELPHI)\lib
-Item1=$(DELPHI)\lib\debug
+Item1=$(DELPHI)\lib\Debug
+Item2=$DELPHI)\lib

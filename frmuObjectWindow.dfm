@@ -281,7 +281,7 @@ object frmObjectView: TfrmObjectView
             Left = 0
             Top = 171
             Width = 615
-            Height = 177
+            Height = 176
             Align = alClient
             Columns = <>
             ColumnClick = False
@@ -508,7 +508,7 @@ object frmObjectView: TfrmObjectView
         Left = 0
         Top = 0
         Width = 623
-        Height = 376
+        Height = 375
         Align = alClient
         Font.Charset = ANSI_CHARSET
         Font.Color = clWindowText
@@ -530,7 +530,7 @@ object frmObjectView: TfrmObjectView
         Left = 0
         Top = 0
         Width = 623
-        Height = 335
+        Height = 334
         Align = alClient
         Columns = <
           item
