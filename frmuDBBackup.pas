@@ -212,6 +212,7 @@ begin
         end;
       end;
 
+      lOptions := [];
       if lBackupService.Active = true then
       begin
         if sgOptions.Cells[OPTION_VALUE_COL,FORMAT_ROW] = 'Non-Transportable' then

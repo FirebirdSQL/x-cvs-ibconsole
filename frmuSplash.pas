@@ -38,7 +38,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  ExtCtrls;
+  ExtCtrls, jpeg;
 
 type
   TfrmSplash = class(TForm)

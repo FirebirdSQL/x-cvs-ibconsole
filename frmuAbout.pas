@@ -41,9 +41,6 @@ type
   TfrmAbout = class(TDialog)
     Panel1: TPanel;
     Image1: TImage;
-    StaticText2: TStaticText;
-    Bevel1: TBevel;
-    StaticText1: TStaticText;
     stxAppVersion: TStaticText;
     stxCopyright: TStaticText;
     stxhttpLink: TStaticText;

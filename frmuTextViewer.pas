@@ -54,6 +54,8 @@ type
     N1: TMenuItem;
     Font1: TMenuItem;
     EditFont: TAction;
+    FontDialog1: TFontDialog;
+    FindDialog1: TFindDialog;
     function FormHelp(Command: Word; Data: Integer; var CallHelp: Boolean): Boolean;
     procedure FormResize(Sender: TObject);
     procedure FormShow(Sender: TObject);
@@ -67,6 +69,7 @@ type
     procedure reEditorEnter(Sender: TObject);
     procedure reEditorKeyPress(Sender: TObject; var Key: Char);
     procedure EditUndo1Update(Sender: TObject);
+    procedure FindDialog1Find(Sender: TObject);
   private
     { Private declarations }
     FFileName: string;
@@ -116,7 +119,6 @@ function TfrmTextViewer.OpenTextViewer(const Service: TIBControlAndQueryService;
         const sFormCaption: string; const readonly:boolean=true): integer;
 begin
   Caption := sFormCaption;           // set caption for form
-//  reEditor.SetFont;
   reEditor.Lines.Clear;
   reEditor.Readonly := readonly;
   Show;
@@ -130,6 +132,8 @@ begin
   result := SUCCESS;
   frmMain.UpdateWindowList(sFormCaption, TObject(Self));
   reEditor.Modified := false;
+  if ReadOnly then
+    stbStatusBar.Panels[1].Text := 'Read-Only';
 end;
 
 function TfrmTextViewer.FormHelp(Command: Word; Data: Integer;
@@ -142,18 +146,18 @@ end;
 
 procedure TfrmTextViewer.FormResize(Sender: TObject);
 begin
-//  reEditor.UpdateCursorPos(stbStatusBar); // displays current cursor position in status bar
+  reEditorEnter(self);
 end;
 
 procedure TfrmTextViewer.FormShow(Sender: TObject);
 begin
-//  reEditor.UpdateCursorPos(stbStatusBar); // displays current cursor position in status bar
-//  reEditor.Modified := false;
+  reEditorEnter(self);
+  reEditor.Modified := false;
 end;
 
 procedure TfrmTextViewer.mnuEdFindClick(Sender: TObject);
 begin
-//  reEditor.Find;
+  FindDialog1.Execute;
 end;
 
 procedure TfrmTextViewer.mnuFiExitClick(Sender: TObject);
@@ -225,7 +229,6 @@ function TfrmTextViewer.ShowText(const Data: TStringList;
 begin
   Caption := Title;
   reEditor.Lines.BeginUpdate;
-//  reEditor.SetFont;
   reEditor.Lines.Clear;
   reEditor.ReadOnly := readonly;
   reEditor.Lines.AddStrings (Data);
@@ -233,14 +236,21 @@ begin
   reEditor.Modified := false;
   reEditor.Lines.EndUpdate;  
   Show;
-  frmMain.UpdateWindowList(Title, TObject(Self));  
+  frmMain.UpdateWindowList(Title, TObject(Self));
   result := SUCCESS;
-  reEditor.Modified := false;  
+  reEditor.Modified := false;
 end;
 
 procedure TfrmTextViewer.EditFontExecute(Sender: TObject);
 begin
-//  reEditor.ChangeFont;
+  FontDialog1.Font.Assign(reEditor.SelAttributes);
+  if FontDialog1.Execute then
+    if reEditor.SelLength > 0 then
+      reEditor.SelAttributes.Assign(FontDialog1.Font)
+    else
+      reEditor.DefAttributes.Assign(FontDialog1.Font);
+  reEditorEnter(Self);
+  reEditor.SetFocus;
 end;
 
 procedure TfrmTextViewer.EditCut1Update(Sender: TObject);
@@ -287,8 +297,18 @@ begin
 end;
 
 procedure TfrmTextViewer.reEditorEnter(Sender: TObject);
+const
+  SColRowInfo = '%3d : %3d';
+var
+  CharPos: TPoint;
 begin
-//  TRichEdit(Sender).UpdateCursorPos(stbStatusBar);
+  CharPos.Y := SendMessage(reEditor.Handle, EM_EXLINEFROMCHAR, 0,
+    reEditor.SelStart);
+  CharPos.X := (reEditor.SelStart -
+    SendMessage(reEditor.Handle, EM_LINEINDEX, CharPos.Y, 0));
+  Inc(CharPos.Y);
+  Inc(CharPos.X);
+  stbStatusBar.Panels[0].Text := Format(SColRowInfo, [CharPos.Y, CharPos.X]);
 end;
 
 procedure TfrmTextViewer.reEditorKeyPress(Sender: TObject; var Key: Char);
@@ -299,6 +319,34 @@ end;
 procedure TfrmTextViewer.EditUndo1Update(Sender: TObject);
 begin
   (Sender as TAction).Enabled := reEditor.Modified;
+  if reEditor.Modified then
+    stbStatusBar.Panels[1].Text := 'Modified';
+end;
+
+procedure TfrmTextViewer.FindDialog1Find(Sender: TObject);
+var
+  FoundAt: LongInt;
+  StartPos, ToEnd: Integer;
+begin
+  with ActiveControl as TRichEdit do
+  begin
+    if SelLength <> 0 then
+      StartPos := SelStart + SelLength
+    else
+      StartPos := 0;
+
+    { ToEnd is the length from StartPos to the end of the text in the rich edit control }
+
+    ToEnd := Length(Text) - StartPos;
+
+    FoundAt := FindText(FindDialog1.FindText, StartPos, ToEnd, [stMatchCase]);
+    if FoundAt <> -1 then
+    begin
+      SetFocus;
+      SelStart := FoundAt;
+      SelLength := Length(FindDialog1.FindText);
+    end;
+  end;
 end;
 
 end.

@@ -246,25 +246,6 @@ const
     '  FDIM.RDB$FIELD_NAME = :FIELDNAME ' +
     'ORDER BY FDIM.RDB$DIMENSION';
 
-  ConstraintSQL =
-    'SELECT RCO.RDB$CONSTRAINT_NAME, RDB$CONSTRAINT_TYPE, RDB$RELATION_NAME, ' +
-    'RDB$DEFERRABLE, RDB$INITIALLY_DEFERRED, RDB$INDEX_NAME, RDB$TRIGGER_NAME ' +
-    'FROM RDB$RELATION_CONSTRAINTS RCO, RDB$CHECK_CONSTRAINTS CON ' +
-    'WHERE ' +
-    '  CON.RDB$TRIGGER_NAME = :FIELDNAME AND ' +
-    '  CON.RDB$CONSTRAINT_NAME = RCO.RDB$CONSTRAINT_NAME AND ' +
-    '  RCO.RDB$CONSTRAINT_TYPE = ''NOT NULL'' AND ' +
-    '  RCO.RDB$RELATION_NAME = :RELATIONNAME';
-
-  RelConstraintsSQL =
-    'SELECT * FROM RDB$RELATION_CONSTRAINTS RELC ' +
-    'WHERE ' +
-    '  (RELC.RDB$CONSTRAINT_TYPE = ''PRIMARY KEY'' OR ' +
-    '  RELC.RDB$CONSTRAINT_TYPE = ''UNIQUE'') AND ' +
-    '  RELC.RDB$RELATION_NAME = :RELATIONNAME ' +
-    'ORDER BY RELC.RDB$CONSTRAINT_NAME';
-
-
 procedure Register;
 begin
   RegisterComponents('InterBase', [TIBExtract]);
@@ -408,6 +389,23 @@ const
     'WHERE REL.RDB$RELATION_NAME = :RelationName ' +
     'ORDER BY RFR.RDB$FIELD_POSITION, RFR.RDB$FIELD_NAME';
 
+  ConstraintSQL =
+    'SELECT RCO.RDB$CONSTRAINT_NAME, RDB$CONSTRAINT_TYPE, RDB$RELATION_NAME, ' +
+    'RDB$DEFERRABLE, RDB$INITIALLY_DEFERRED, RDB$INDEX_NAME, RDB$TRIGGER_NAME ' +
+    'FROM RDB$RELATION_CONSTRAINTS RCO, RDB$CHECK_CONSTRAINTS CON ' +
+    'WHERE ' +
+    '  CON.RDB$TRIGGER_NAME = :FIELDNAME AND ' +
+    '  CON.RDB$CONSTRAINT_NAME = RCO.RDB$CONSTRAINT_NAME AND ' +
+    '  RCO.RDB$CONSTRAINT_TYPE = ''NOT NULL'' AND ' +
+    '  RCO.RDB$RELATION_NAME = :RELATIONNAME';
+
+  RelConstraintsSQL =
+    'SELECT * FROM RDB$RELATION_CONSTRAINTS RELC ' +
+    'WHERE ' +
+    '  (RELC.RDB$CONSTRAINT_TYPE = ''PRIMARY KEY'' OR ' +
+    '  RELC.RDB$CONSTRAINT_TYPE = ''UNIQUE'') AND ' +
+    '  RELC.RDB$RELATION_NAME = :RELATIONNAME ' +
+    'ORDER BY RELC.RDB$CONSTRAINT_NAME';
 
 var
   Collation, CharSetId : Short;
@@ -507,7 +505,7 @@ begin
                         [blr_short, blr_long, blr_int64] then
                 begin
                   qryPrecision.Params.ByName('FIELDNAME').AsString :=
-                    qryTables.FieldByName('RDB$FIELD_NAME').AsString;
+                    qryTables.FieldByName('RDB$FIELD_NAME1').AsString;
                   qryPrecision.ExecQuery;
 
                   { We are ODS >= 10 and could be any Dialect }
@@ -648,6 +646,7 @@ begin
     qryRelConstraints.ExecQuery;
     while not qryRelConstraints.Eof do
     begin
+      Constraint := '';
       FMetaData.Strings[FMetaData.Count - 1] := FMetaData.Strings[FMetaData.Count - 1]  + ',';
       { If the name of the constraint is not INTEG..., print it }
       if Pos('INTEG', qryRelConstraints.FieldByName('RDB$CONSTRAINT_NAME').AsString) <> 1 then
@@ -658,13 +657,13 @@ begin
 
       if Pos('PRIMARY', qryRelConstraints.FieldByName('RDB$CONSTRAINT_TYPE').AsString) = 1 then
       begin
-        FMetaData.Add(Constraint + Format('  PRIMARY KEY (%s)',
+        FMetaData.Add(Constraint + Format(' PRIMARY KEY (%s)',
            [GetIndexSegments(qryRelConstraints.FieldByName('RDB$INDEX_NAME').AsString)]));
       end
       else
         if Pos('UNIQUE', qryRelConstraints.FieldByName('RDB$CONSTRAINT_TYPE').AsString) = 1 then
         begin
-          FMetaData.Add(Constraint + Format('  UNIQUE (%s)',
+          FMetaData.Add(Constraint + Format(' UNIQUE (%s)',
              [GetIndexSegments(qryRelConstraints.FieldByName('RDB$INDEX_NAME').AsString)]));
         end;
       qryRelConstraints.Next;
@@ -877,8 +876,7 @@ begin
       qryRoles.ExecQuery;
       while not qryRoles.Eof do
       begin
-        RelationName := QuoteIdentifier(FDatabase.SQLDialect,
-              qryRoles.FieldByName('rdb$relation_Name').AsString);
+        RelationName := Trim(qryRoles.FieldByName('rdb$relation_Name').AsString);
         ShowGrants(RelationName, Term);
         qryRoles.Next;
       end;
@@ -967,6 +965,7 @@ begin
       FMetaData.Add(Format(CreateProcedureStr2, [ProcTerm, NEWLINE]));
       qryProcedures.Next;
     end;
+
     qryProcedures.Close;
     qryProcedures.ExecQuery;
     while not qryProcedures.Eof do
@@ -981,7 +980,6 @@ begin
         SList.Text := SList.Text + qryProcedures.FieldByName('RDB$PROCEDURE_SOURCE').AsString;
       SList.Add(Format(' %s%s', [ProcTerm, NEWLINE]));
       FMetaData.AddStrings(SList);
-
       qryProcedures.Next;
     end;
 
@@ -1293,7 +1291,7 @@ begin
     TargetDb := FDatabase.DatabaseName;
     NoDb := true;
   end;
-  Buffer := Buffer + 'CREATE DATABASE ' + QuotedStr(TargetDb) + ' PAGE SIZE ' +
+  Buffer := Buffer + 'CREATE DATABASE ' + QuotedStr(TargetDb) + ' PAGE_SIZE ' +
     IntToStr(FDatabaseInfo.PageSize) + NEWLINE;
   FMetaData.Add(Buffer);
   Buffer := '';
@@ -1486,7 +1484,7 @@ end;
 procedure TIBExtract.ListDomains(ObjectName: String; ExtractType : TExtractType);
 const
   DomainSQL =
-    'SELECT * FROM RDB$FIELDS FLD JOIN RDB$RELATION_FIELDS RFR ON ' +
+    'SELECT distinct fld.* FROM RDB$FIELDS FLD JOIN RDB$RELATION_FIELDS RFR ON ' +
     '  RFR.RDB$FIELD_SOURCE = FLD.RDB$FIELD_NAME ' +
     'WHERE RFR.RDB$RELATION_NAME = :TABLE_NAME ' +
     'ORDER BY FLD.RDB$FIELD_NAME';
@@ -1831,6 +1829,7 @@ const
 var
   qryForeign : TIBSQL;
   Line : String;
+
 begin
   qryForeign := TIBSQL.Create(FDatabase);
   try

@@ -227,6 +227,7 @@ begin
         end;
       end;
 
+      lOptions := [];
       if lRestoreService.Active = true then
       begin
         if sgOptions.Cells[OPTION_VALUE_COL,OVERWRITE_ROW] = 'True' then

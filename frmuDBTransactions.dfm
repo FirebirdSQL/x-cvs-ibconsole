@@ -1,6 +1,6 @@
 object frmDBTransactions: TfrmDBTransactions
-  Left = 97
-  Top = 183
+  Left = 179
+  Top = 175
   BorderIcons = [biSystemMenu, biHelp]
   BorderStyle = bsDialog
   Caption = 'Transaction Recovery'
@@ -154,5 +154,13 @@ object frmDBTransactions: TfrmDBTransactions
       'Use &Two-Phase Commit')
     TabOrder = 4
     OnClick = rgOptionsClick
+  end
+  object FValidation: TIBValidationService
+    Protocol = TCP
+    LoginPrompt = False
+    TraceFlags = []
+    Options = []
+    GlobalAction = CommitGlobal
+    Left = 268
   end
 end

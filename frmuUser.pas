@@ -629,22 +629,22 @@ end;
 *****************************************************************}
 function TfrmUserInfo.GetUserInfo(): boolean;
 var
-  lUserInfo: TUserInfo; //**PC
+  lUserInfo: TUserInfo;
   i : Integer;
 begin
   Result := True;
   try
     Screen.Cursor := crHourGlass;
     i := 0;
-//    lUserInfo := nil;  //**PC
-    while (i < FSecurityService.UserInfoCount) {and
-          not Assigned(lUserInfo)} do
+    lUserInfo := nil;
+    while (i < FSecurityService.UserInfoCount) and
+          not Assigned(lUserInfo) do
       if cbUsername.Text = FSecurityService.UserInfo[i].UserName then
         lUserInfo := FSecurityService.UserInfo[i]
       else
         Inc(i);
-//    if Assigned(lUserInfo) then
-//    begin
+    if Assigned(lUserInfo) then
+    begin
       edtPassword.Text := DUMMY_PASSWORD;
       FPassword := '';
       edtConfirmPassword.text := DUMMY_PASSWORD;
@@ -652,9 +652,9 @@ begin
       edtFName.Text := lUserInfo.FirstName;
       edtMName.Text := lUserInfo.MiddleName;
       edtLName.Text := lUserInfo.LastName;
-//    end
-//    else
-//      Result := False;
+    end
+    else
+      Result := False;
   finally
     Screen.Cursor := crDefault;      // change cursor to default
   end;

@@ -43,7 +43,7 @@ object dlgWisql: TdlgWisql
     Top = 189
     Width = 634
     Height = 226
-    ActivePage = TabData
+    ActivePage = TabResults
     Align = alClient
     DockSite = True
     TabOrder = 0
@@ -626,26 +626,39 @@ object dlgWisql: TdlgWisql
   object pmRichEdit: TPopupMenu
     Left = 160
     Top = 66
-    object Edit2: TMenuItem
-      Caption = '&Edit'
-      object Cut1: TMenuItem
-        Action = EditCut1
-      end
-      object Copy1: TMenuItem
-        Action = EditCopy1
-      end
-      object Paste1: TMenuItem
-        Action = EditPaste1
-      end
-      object Selectall1: TMenuItem
-        Action = EditSelectAll1
-      end
-      object N3: TMenuItem
-        Caption = '-'
-      end
-      object Undo1: TMenuItem
-        Action = EditUndo1
-      end
+    object Cut1: TMenuItem
+      Action = EditCut1
     end
+    object Copy1: TMenuItem
+      Action = EditCopy1
+    end
+    object Paste1: TMenuItem
+      Action = EditPaste1
+    end
+    object Selectall1: TMenuItem
+      Action = EditSelectAll1
+    end
+    object N3: TMenuItem
+      Caption = '-'
+    end
+    object Undo1: TMenuItem
+      Action = EditUndo1
+    end
+  end
+  object FontDialog1: TFontDialog
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -11
+    Font.Name = 'MS Sans Serif'
+    Font.Style = []
+    MinFontSize = 0
+    MaxFontSize = 0
+    Left = 24
+    Top = 104
+  end
+  object FindDialog1: TFindDialog
+    OnFind = FindDialog1Find
+    Left = 52
+    Top = 106
   end
 end

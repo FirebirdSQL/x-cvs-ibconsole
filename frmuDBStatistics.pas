@@ -159,20 +159,24 @@ begin
           Screen.Cursor := crHourGlass;
 
           // assign database details
-          lDBStatistics.DatabaseName := CurrSelDatabase.Database.DatabaseName;
+          lDBStatistics.DatabaseName := CurrSelDatabase.DatabaseFiles.Strings[0];
 
           lDBStatisticsOptions := [];
           // determine which options have been selected
           if frmDBStatistics.sgOptions.Cells[1,STATISTICS_OPTION_ROW] = 'Data Pages' then
             Include(lDBStatisticsOptions, DataPages)
-          else if frmDBStatistics.sgOptions.Cells[1,STATISTICS_OPTION_ROW] = 'Database Log' then
-            Include(lDBStatisticsOptions, DbLog)
-          else if frmDBStatistics.sgOptions.Cells[1,STATISTICS_OPTION_ROW] = 'Header Page' then
-            Include(lDBStatisticsOptions, HeaderPages)
-          else if frmDBStatistics.sgOptions.Cells[1,STATISTICS_OPTION_ROW] = 'Index Pages' then
-            Include(lDBStatisticsOptions, IndexPages)
-          else if frmDBStatistics.sgOptions.Cells[1,STATISTICS_OPTION_ROW] = 'System Relations' then
-            Include(lDBStatisticsOptions, SystemRelations);
+          else
+            if frmDBStatistics.sgOptions.Cells[1,STATISTICS_OPTION_ROW] = 'Database Log' then
+              Include(lDBStatisticsOptions, DbLog)
+            else
+              if frmDBStatistics.sgOptions.Cells[1,STATISTICS_OPTION_ROW] = 'Header Page' then
+                Include(lDBStatisticsOptions, HeaderPages)
+              else
+                if frmDBStatistics.sgOptions.Cells[1,STATISTICS_OPTION_ROW] = 'Index Pages' then
+                  Include(lDBStatisticsOptions, IndexPages)
+                else
+                  if frmDBStatistics.sgOptions.Cells[1,STATISTICS_OPTION_ROW] = 'System Relations' then
+                    Include(lDBStatisticsOptions, SystemRelations);
 
           // assign validation options
           lDBStatistics.Options := lDBStatisticsOptions;

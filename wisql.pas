@@ -160,13 +160,14 @@ type
     ToolButton13: TToolButton;
     ToolButton20: TToolButton;
     pmRichEdit: TPopupMenu;
-    Edit2: TMenuItem;
     Paste1: TMenuItem;
     Copy1: TMenuItem;
     Cut1: TMenuItem;
     Undo1: TMenuItem;
     Selectall1: TMenuItem;
     N3: TMenuItem;
+    FontDialog1: TFontDialog;
+    FindDialog1: TFindDialog;
     procedure QueryExecuteExecute(Sender: TObject);
     procedure QueryLoadScriptExecute(Sender: TObject);
     procedure QuerySaveScriptExecute(Sender: TObject);
@@ -208,6 +209,7 @@ type
     procedure QuerySaveOutputUpdate(Sender: TObject);
     procedure DatabaseDisconnectUpdate(Sender: TObject);
     procedure DatabaseConnectAsUpdate(Sender: TObject);
+    procedure FindDialog1Find(Sender: TObject);
   private
     { Private declarations }
     FDatabase: TIBDatabase;
@@ -265,7 +267,7 @@ implementation
 
 uses frmuMessage, zluGlobal, frmuSQLOptions, frmuDisplayBlob,
      frmuDispMemo, zluContextHelp, Printers, fileCtrl, zluUtility, Registry,
-     frmuMain, IBSQL;
+     frmuMain, IBSQL, RichEdit;
 
 type
   TWinState = record
@@ -341,8 +343,7 @@ begin
           mtConfirmation, mbYesNoCancel, 0) <> idYes then Exit;
       reSQLInput.PlainText := true;
       reSQLInput.Lines.SaveToFile(lSaveDialog.FileName);
-      // Kris comments
-      // reSQLInput.SetModified(False,false,stbISQL);
+      reSQLInput.Modified := false;
       reSQLInput.PlainText := false;
     end;
   end
@@ -418,8 +419,8 @@ begin
   end;
 
   reSQLOutput.Clear;
-  // Kris coomented
-  // reSQLOutput.SetFont;
+  // Kris commented
+  //reSQLOutput.SelAttributes.Assign(reSqlInput.SelAttributes);
   ISQLObj := nil;
   Stats := nil;
   try
@@ -537,10 +538,7 @@ procedure TdlgWisql.ShowDialog;
 begin
   reSQLInput.Lines.Clear;
   reSQLOutput.Lines.Clear;
-  // Kris commented
-  // reSQLInput.ObjectName := OBJECTNAME;
-  // reSQLInput.SetFont;
-  // reSQLOutput.SetFont;
+
   frmMain.UpdateWindowList(Caption, TObject(Self), true);
   if Assigned (FDatabase) then
   begin
@@ -576,9 +574,18 @@ end;
 
 /////////////////////////////////////////////////////////////
 procedure TdlgWisql.UpdateCursor(Sender: TObject);
+const
+  SColRowInfo = '%3d : %3d';
+var
+  CharPos: TPoint;
 begin
-  // Kris commented
-  // TRichEditX(Sender).UpdateCursorPos(stbISQL);
+  CharPos.Y := SendMessage(reSqlInput.Handle, EM_EXLINEFROMCHAR, 0,
+    reSqlInput.SelStart);
+  CharPos.X := (reSqlInput.SelStart -
+    SendMessage(reSqlInput.Handle, EM_LINEINDEX, CharPos.Y, 0));
+  Inc(CharPos.Y);
+  Inc(CharPos.X);
+  stbISQL.Panels[0].Text := Format(SColRowInfo, [CharPos.Y, CharPos.X]);
 end;
 
 /////////////////////////////////////////////////////////////
@@ -756,8 +763,6 @@ begin
 
   { On create, the input window is always 1/2 of the window }
   reSQLInput.Height := Self.Height div 2;
-  // Kris commented
-  // reSQLOutput.SetFont;
 
   FQueryBuffer := TQryList.Create;
 end;
@@ -804,25 +809,23 @@ end;
 //////////////////////////////////////////////////////////
 procedure TdlgWisql.EditFindExecute(Sender: TObject);
 begin
-  // Kris commented
-  //(ActiveControl as TRichEditX).Find;
+  FindDialog1.Execute;
 end;
 
 //////////////////////////////////////////////////////////
 procedure TdlgWisql.EditFindUpdate(Sender: TObject);
 begin
-  // Kris commented
-  // if (ActiveControl is TRichEditX) then
-  //   with (ActiveControl as TRichEditX) do
-  //     (Sender as TAction).Enabled := true
-  // else
-  //   (Sender as TAction).Enabled := false;
+  (Sender as TAction).Enabled := (ActiveControl is TRichEdit);
 end;
 
 /////////////////////////////////////////////////////////////
 procedure TdlgWisql.QueryUpdate(Sender: TObject);
 begin
   (Sender as TAction).Enabled := (reSQlInput.Lines.Count > 0);
+  if reSQlInput.Modified then
+    stbISQL.Panels[1].Text := 'Modified'
+  else
+    stbISQL.Panels[1].text := '';
 end;
 
 /////////////////////////////////////////////////////////////
@@ -832,8 +835,6 @@ var
 begin
   try
     reSQLOutput.Clear;
-    // Kris commented
-    // reSQLOutput.SetFont;
     ISQLObj := TIBSqlObj.Create (Self);
     with ISQLObj do
     begin
@@ -939,9 +940,14 @@ end;
 /////////////////////////////////////////////////////////////
 procedure TdlgWisql.EditFontExecute(Sender: TObject);
 begin
-  // Kris commented
-  // reSQLInput.ObjectName := OBJECTNAME;
-  // reSQLInput.ChangeFont;
+  FontDialog1.Font.Assign(reSqlInput.SelAttributes);
+  if FontDialog1.Execute then
+    if reSqlInput.SelLength > 0 then
+      reSqlInput.SelAttributes.Assign(FontDialog1.Font)
+    else
+      reSqlInput.DefAttributes.Assign(FontDialog1.Font);
+  UpdateCursor(Self);
+  reSqlInput.SetFocus;
 end;
 
 /////////////////////////////////////////////////////////////
@@ -1212,7 +1218,7 @@ begin
     begin
       lblFileName.Caption := FDatabase.DatabaseName;
       dbString := MinimizeName (lblFileName.Caption, lblFileName.Canvas,
-        sbData.Panels[0].Width);
+        sbData.Panels[0].Width + 10);
       sbData.Panels[0].Text := dbString;
     end
     else
@@ -1537,6 +1543,32 @@ begin
     (Sender as TAction).Enabled := not FDatabase.Connected
 //  else
 //    (Sender as TAction).Enabled := (cbServers.ItemIndex <> -1);
+end;
+
+procedure TdlgWisql.FindDialog1Find(Sender: TObject);
+var
+  FoundAt: LongInt;
+  StartPos, ToEnd: Integer;
+begin
+  with ActiveControl as TRichEdit do
+  begin
+    if SelLength <> 0 then
+      StartPos := SelStart + SelLength
+    else
+      StartPos := 0;
+
+    { ToEnd is the length from StartPos to the end of the text in the rich edit control }
+
+    ToEnd := Length(Text) - StartPos;
+
+    FoundAt := FindText(FindDialog1.FindText, StartPos, ToEnd, [stMatchCase]);
+    if FoundAt <> -1 then
+    begin
+      SetFocus;
+      SelStart := FoundAt;
+      SelLength := Length(FindDialog1.FindText);
+    end;
+  end;
 end;
 
 end.

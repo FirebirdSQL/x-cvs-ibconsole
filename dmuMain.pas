@@ -102,7 +102,7 @@ begin
   SelDatabaseNode.DefaultTransaction.StartTransaction;
 
   ObjectList.Add(Format('Name%sModule%sEntry%sInput%sOutput%sDescription',[DEL,DEL,DEL,DEL,DEL]));
-
+ 
   lQry := nil;
   try
     lQry := TIBSQL.Create (self);

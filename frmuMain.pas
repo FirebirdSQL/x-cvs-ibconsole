@@ -497,7 +497,7 @@ end;
 *               when the Main form is closed
 *
 *****************************************************************
-* * Revisions:
+* Revisions:
 *
 *****************************************************************}
 procedure TfrmMain.FormClose(Sender: TObject; var Action: TCloseAction);
@@ -856,13 +856,11 @@ end;
 *
 *****************************************************************}
 procedure TfrmMain.tvMainChange(Sender: TObject; Node: TTreeNode);
-
 begin
   stbMain.Panels[0].Text := '';
   stbMain.Panels[1].Text := '';
   stbMain.Panels[2].Text := '';
   stbMain.Panels[3].Text := '';
-
 try
   if Assigned(tvMain.Selected) then
   begin
@@ -1445,7 +1443,7 @@ begin
 
       lUserInfo := UserInfo[lUserCount];
       lObjectList.Add(Format('User Name%sFirst Name%sMiddle Name%sLast Name',[DEL,DEL,DEL]));
-      while {Assigned(lUserInfo) and }(lUserInfo.UserName <> '') and
+      while Assigned(lUserInfo) and (lUserInfo.UserName <> '') and
            (lUserInfo.UserName <> lPrevUsername) do
       begin
         lObjectList.Add(Format('%s%s%s%s%s%s%s',[lUserInfo.UserName,DEL,lUserInfo.FirstName,DEL,
@@ -2741,7 +2739,7 @@ begin
       end
       else
         Database := nil;
-      
+
       ServerList.Clear;
       for lCnt := 1 to TibcServerNode(tvMain.Items[0].Data).ObjectList.Count - 1 do
       begin
@@ -2755,8 +2753,8 @@ begin
 
       if Assigned (FCurrSelServer) and (FCurrSelServer.server.Active) then
       begin
-      OnConnectDatabase := EventDatabaseConnect;
-      OnCreateDatabase := EventDatabaseCreate;
+        OnConnectDatabase := EventDatabaseConnect;
+        OnCreateDatabase := EventDatabaseCreate;
       end;
       ShowDialog;
     end;

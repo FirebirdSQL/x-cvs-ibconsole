@@ -57,6 +57,7 @@ type
     btnCancel: TButton;
     rgOptions: TRadioGroup;
     lblRepairStatus: TLabel;
+    FValidation: TIBValidationService;
     procedure btnCancelClick(Sender: TObject);
     procedure btnOKClick(Sender: TObject);
     procedure lvTransactionsSelectItem(Sender: TObject; Item: TListItem; Selected: Boolean);
@@ -66,7 +67,6 @@ type
     procedure FormCreate(Sender: TObject);
   private
     { Private declarations }
-    FValidation : TIBValidationService;
     FGlobalAction: TTransactionGlobalAction;
     FCurrentRecord : Integer;
     procedure GetLimboTransactions(const SourceServerNode : TibcServerNode; const CurrSelDatabase : TibcDatabaseNode);
@@ -171,75 +171,68 @@ procedure TfrmDBTransactions.GetLimboTransactions(const SourceServerNode : TibcS
 var
   lListItem : TListItem;
 begin
-  FValidation := nil;
   try
-    // create validation service object
-    FValidation := TIBValidationService.Create(nil);
-    try
-      // assign server details
-      FValidation.LoginPrompt := false;
-      FValidation.ServerName := SourceServerNode.Server.ServerName;
-      FValidation.Protocol := SourceServerNode.Server.Protocol;
-      FValidation.Params.Clear;
-      FValidation.Params.Assign(SourceServerNode.Server.Params);
-      // assign database details
-      case SourceServerNode.Server.Protocol of
-        TCP : FValidation.DatabaseName := Format('%s:%s',[SourceServerNode.ServerName,CurrSelDatabase.DatabaseFiles.Strings[0]]);
-        NamedPipe : FValidation.DatabaseName := Format('\\%s\%s',[SourceServerNode.ServerName,CurrSelDatabase.DatabaseFiles.Strings[0]]);
-        SPX : FValidation.DatabaseName := Format('%s@%s',[SourceServerNode.ServerName,CurrSelDatabase.DatabaseFiles.Strings[0]]);
-        Local : FValidation.DatabaseName := CurrSelDatabase.DatabaseFiles.Strings[0];
-      end;
-      // attach to server and start service
-      FValidation.Options := [LimboTransactions];
-      FValidation.Attach();
-      FValidation.ServiceStart;
-    except
-      on E: EIBError do
-      begin
-        DisplayMsg(E.IBErrorCode, E.Message);
-        if (E.IBErrorCode = isc_lost_db_connection) or
-           (E.IBErrorCode = isc_unavailable) or
-           (E.IBErrorCode = isc_network_error) then
-          frmMain.SetErrorState;
-        SetErrorState;
-        Exit;
-      end;
+    // assign server details
+    FValidation.ServerName := SourceServerNode.Server.ServerName;
+    FValidation.Protocol := SourceServerNode.Server.Protocol;
+    FValidation.Params.Clear;
+    FValidation.Params.Assign(SourceServerNode.Server.Params);
+    // assign database details
+    case SourceServerNode.Server.Protocol of
+      TCP : FValidation.DatabaseName := Format('%s:%s',[SourceServerNode.ServerName,CurrSelDatabase.DatabaseFiles.Strings[0]]);
+      NamedPipe : FValidation.DatabaseName := Format('\\%s\%s',[SourceServerNode.ServerName,CurrSelDatabase.DatabaseFiles.Strings[0]]);
+      SPX : FValidation.DatabaseName := Format('%s@%s',[SourceServerNode.ServerName,CurrSelDatabase.DatabaseFiles.Strings[0]]);
+      Local : FValidation.DatabaseName := CurrSelDatabase.DatabaseFiles.Strings[0];
     end;
-
-    // get limbo transactions and populate LimboTransactionsInfo array
-    FValidation.FetchLimboTransactionInfo;
-
-    while (FValidation.IsServiceRunning) and (not gApplShutdown) do
+    // attach to server and start service
+    FValidation.Options := [LimboTransactions];
+    FValidation.Attach();
+    FValidation.ServiceStart;
+  except
+    on E: EIBError do
     begin
-      Application.ProcessMessages;
+      DisplayMsg(E.IBErrorCode, E.Message);
+      if (E.IBErrorCode = isc_lost_db_connection) or
+         (E.IBErrorCode = isc_unavailable) or
+         (E.IBErrorCode = isc_network_error) then
+        frmMain.SetErrorState;
+      SetErrorState;
+      Exit;
     end;
+  end;
 
-    if FValidation.Active then
-      FValidation.Detach();
+  // get limbo transactions and populate LimboTransactionsInfo array
+  FValidation.FetchLimboTransactionInfo;
 
-    // get number of records and populate listview
-    FCurrentRecord := 0;
-    while FValidation.LimboTransactionInfo[FCurrentRecord].ID > 0 do
-    begin
-      lListItem := lvTransactions.Items.Add;
+  while (FValidation.IsServiceRunning) and (not gApplShutdown) do
+  begin
+    Application.ProcessMessages;
+  end;
 
-      if FValidation.LimboTransactionInfo[FCurrentRecord].MultiDatabase then
-        lListItem.Caption := 'Multi-Database Transaction'
-      else
-        lListItem.Caption := 'Transaction';
+  if FValidation.Active then
+    FValidation.Detach();
 
-      lListItem.SubItems.Add(IntToStr(FValidation.LimboTransactionInfo[FCurrentRecord].ID));
-      case FValidation.LimboTransactionInfo[FCurrentRecord].Advise of
-        CommitAdvise   : lListItem.SubItems.Add('Commit');
-        RollBackAdvise : lListItem.SubItems.Add('Rollback');
-        UnknownAdvise  : lListItem.SubItems.Add('Unknown');
-      end;
-      lListItem.SubItems.Add('In Limbo');
+  // get number of records and populate listview
+  FCurrentRecord := 0;
+  while (FCurrentRecord < FValidation.LimboTransactionInfoCount) and
+        (FValidation.LimboTransactionInfo[FCurrentRecord].ID > 0) do
+  begin
+    lListItem := lvTransactions.Items.Add;
 
-      Inc(FCurrentRecord);
+    if FValidation.LimboTransactionInfo[FCurrentRecord].MultiDatabase then
+      lListItem.Caption := 'Multi-Database Transaction'
+    else
+      lListItem.Caption := 'Transaction';
+
+    lListItem.SubItems.Add(IntToStr(FValidation.LimboTransactionInfo[FCurrentRecord].ID));
+    case FValidation.LimboTransactionInfo[FCurrentRecord].Advise of
+      CommitAdvise   : lListItem.SubItems.Add('Commit');
+      RollBackAdvise : lListItem.SubItems.Add('Rollback');
+      UnknownAdvise  : lListItem.SubItems.Add('Unknown');
     end;
-  finally
-    // FValidation.Free;
+    lListItem.SubItems.Add('In Limbo');
+
+    Inc(FCurrentRecord);
   end;
 end;
 
@@ -275,7 +268,9 @@ begin
   begin
     // find transaction record
     i := 0;
-    while (FValidation.LimboTransactionInfo[i].ID <> 0) and (FValidation.LimboTransactionInfo[i].ID <> StrToInt(lListItem.SubItems[0]))  do
+    while (i < FValidation.LimboTransactionInfoCount) and
+          (FValidation.LimboTransactionInfo[i].ID <> 0) and
+          (FValidation.LimboTransactionInfo[i].ID <> StrToInt(lListItem.SubItems[0]))  do
       Inc(i);
 
     // make it the current record
@@ -334,13 +329,18 @@ var
 begin
   // find currently selected record
   i := 0;
-  while (FValidation.LimboTransactionInfo[i].ID <> StrToInt(Item.SubItems[0])) and (FValidation.LimboTransactionInfo[i].ID <> 0) do
+  while (i < FValidation.LimboTransactionInfoCount) and
+        (FValidation.LimboTransactionInfo[i].ID <> StrToInt(Item.SubItems[0])) and
+        (FValidation.LimboTransactionInfo[i].ID <> 0) do
     Inc(i);
 
   FCurrentRecord := i;
 
   // show its database path
-  edtPath.Text := FValidation.LimboTransactionInfo[i].RemoteDatabasePath;
+  if FCurrentRecord < FValidation.LimboTransactionInfoCount then
+    edtPath.Text := FValidation.LimboTransactionInfo[i].RemoteDatabasePath
+  else
+    edtPath.Text := '';
 end;
 
 {****************************************************************
