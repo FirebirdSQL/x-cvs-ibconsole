@@ -1,6 +1,6 @@
 object frmObjectView: TfrmObjectView
-  Left = 664
-  Top = 325
+  Left = 297
+  Top = 217
   Width = 639
   Height = 479
   BorderIcons = [biSystemMenu, biHelp]
@@ -16,7 +16,7 @@ object frmObjectView: TfrmObjectView
   TextHeight = 13
   object StatusBar: TStatusBar
     Left = 0
-    Top = 433
+    Top = 432
     Width = 631
     Height = 19
     Panels = <
@@ -57,8 +57,8 @@ object frmObjectView: TfrmObjectView
     Left = 0
     Top = 29
     Width = 631
-    Height = 404
-    ActivePage = tabData
+    Height = 403
+    ActivePage = tabProperties
     Align = alClient
     HotTrack = True
     TabOrder = 2
@@ -80,7 +80,7 @@ object frmObjectView: TfrmObjectView
         Left = 0
         Top = 0
         Width = 623
-        Height = 376
+        Height = 375
         ActivePage = tabTables
         Align = alClient
         MultiLine = True
@@ -103,9 +103,9 @@ object frmObjectView: TfrmObjectView
             Caption = 'lblFileName'
             Visible = False
           end
-          object reConstraint: TRichEditX
+          object reConstraint: TRichEdit
             Left = 0
-            Top = 127
+            Top = 126
             Width = 615
             Height = 221
             Align = alBottom
@@ -210,11 +210,11 @@ object frmObjectView: TfrmObjectView
             TabOrder = 1
             ViewStyle = vsReport
           end
-          object reTriggerSource: TRichEditX
+          object reTriggerSource: TRichEdit
             Left = 0
             Top = 246
             Width = 615
-            Height = 102
+            Height = 101
             TabStop = False
             Align = alClient
             Color = clBtnFace
@@ -242,11 +242,11 @@ object frmObjectView: TfrmObjectView
             Cursor = crVSplit
             Align = alTop
           end
-          object reProcSource: TRichEditX
+          object reProcSource: TRichEdit
             Left = 0
             Top = 147
             Width = 615
-            Height = 201
+            Height = 200
             TabStop = False
             Align = alClient
             Color = clBtnFace
@@ -504,7 +504,7 @@ object frmObjectView: TfrmObjectView
     object tabMetadata: TTabSheet
       Caption = 'Metadata'
       ImageIndex = 1
-      object reMetadata: TRichEditX
+      object reMetadata: TRichEdit
         Left = 0
         Top = 0
         Width = 623
@@ -581,7 +581,7 @@ object frmObjectView: TfrmObjectView
       end
       object Panel1: TPanel
         Left = 0
-        Top = 335
+        Top = 334
         Width = 623
         Height = 41
         Align = alBottom
@@ -686,7 +686,7 @@ object frmObjectView: TfrmObjectView
         Left = 0
         Top = 41
         Width = 623
-        Height = 335
+        Height = 334
         Align = alClient
         BevelOuter = bvNone
         Caption = 'pnlDependents'
@@ -695,7 +695,7 @@ object frmObjectView: TfrmObjectView
           Left = 0
           Top = 0
           Width = 623
-          Height = 335
+          Height = 334
           Align = alClient
           Images = frmMain.imgTreeview
           Indent = 23
@@ -707,7 +707,7 @@ object frmObjectView: TfrmObjectView
         Left = 0
         Top = 41
         Width = 623
-        Height = 335
+        Height = 334
         Align = alClient
         BevelOuter = bvNone
         TabOrder = 2
@@ -715,7 +715,7 @@ object frmObjectView: TfrmObjectView
           Left = 0
           Top = 0
           Width = 623
-          Height = 335
+          Height = 334
           Align = alClient
           Images = frmMain.imgTreeview
           Indent = 23

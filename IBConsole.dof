@@ -44,24 +44,20 @@ UnitOutputDir=
 PackageDLLOutputDir=
 PackageDCPOutputDir=
 SearchPath=
-Packages=Vcl50;Vclx50;VclSmp50;Vcldb50;vclado50;ibevnt50;Vclbde50;vcldbx50;Qrpt50;TeeUI50;TeeDB50;Tee50;Dss50;TeeQR50;VCLIB50;Vclmid50;vclie50;Inetdb50;Inet50;NMFast50;webmid50;dclocx50;dclaxserver50
+Packages=Vcl50;Vclx50;VclSmp50;Vcldb50;vclado50;ibevnt50;Vclbde50;vcldbx50;Qrpt50;TeeUI50;TeeDB50;Tee50;Dss50;TeeQR50;Vclmid50;vclie50;Inetdb50;Inet50;NMFast50;webmid50;dclocx50;dclaxserver50;DDGStd50;DDGDb50;JoCustom;VCLZip_D5;Doa_d5;ip50_d5;filterdlg_d5;ascstd5;IBO_D5;ip50word_d5;ip50client_d5;sym400_d5;DBISAMDB;CommonDialog_D5;ilcorp50;FirstClass2000_vcl5;dxcomnD5;EQTLD5;dxEdtrD5;EQGridD5;dxDBEdD5;dxGrEdD5;dxBarD5;dxBarDBNavD5;dxBarExtItemsD5;dxBarExtDBItemsD5;dxsbD5;dxdbtrD5;dxtrmdD5;dxmdsd5;dxInsD5;dxForumLibD5;dxorgcD5;dxdborD5;Rz251N50;Rz251D50;dcctd5;InetXCustom;rbIBE55;rbDB55;rbRCL55;VCLIB50;rbDAD55;rbTDBC51;rbIDE55;rbCIDE55;rbBDE55;rbDBDE55;rbDIDE55;rbUSER55;rbADO55;RxCtl5;RxBDE5;RxDB5;WEBDEV;WinshoesPkgD5;IBExtractPgk
 Conditionals=
 DebugSourceDirs=
 UsePackages=0
 [Parameters]
 RunParams=
 HostApplication=
-[Language]
-ActiveLang=
-ProjectLang=$00000409
-RootDir=
 [Version Info]
 IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=1
 MinorVer=0
 Release=0
-Build=309
+Build=310
 Debug=0
 PreRelease=0
 Special=0
@@ -70,16 +66,23 @@ DLL=0
 Locale=1033
 CodePage=1252
 [Version Info Keys]
-CompanyName=Inprise Corporation
-FileDescription=InterBase Administration Utility
-FileVersion=1.0.0.309
+CompanyName=
+FileDescription=
+FileVersion=1.0.0.310
 InternalName=
-LegalCopyright=1999 Inprise Corporation
+LegalCopyright=
 LegalTrademarks=
 OriginalFilename=
-ProductName=InterBase
+ProductName=
 ProductVersion=1.0.0.0
 Comments=
+[Excluded Packages]
+$(DELPHI)\Bin\dclite50.bpl=Borland Integrated Translation Environment
+$(DELPHI)\Projects\Bpl\rbIP45.bpl=ReportBuilder wwRichEdit support
+$(DELPHI)\Projects\Bpl\GxComponents5.bpl=GExperts source components
 [HistoryLists\hlUnitAliases]
 Count=1
 Item0=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;
+[HistoryLists\hlSearchPath]
+Count=1
+Item0=$(DELPHI)\DOA\Delphi4

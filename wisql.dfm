@@ -1,6 +1,6 @@
 object dlgWisql: TdlgWisql
-  Left = 460
-  Top = 515
+  Left = 315
+  Top = 173
   ActiveControl = reSqlInput
   AutoScroll = False
   Caption = 'Interactive SQL'
@@ -71,7 +71,7 @@ object dlgWisql: TdlgWisql
     object TabResults: TTabSheet
       Caption = 'Plan'
       ImageIndex = 1
-      object reSqlOutput: TRichEditX
+      object reSqlOutput: TRichEdit
         Left = 0
         Top = 0
         Width = 626
@@ -123,7 +123,7 @@ object dlgWisql: TdlgWisql
     Align = alTop
     BevelOuter = bvNone
     TabOrder = 1
-    object reSqlInput: TRichEditX
+    object reSqlInput: TRichEdit
       Left = 0
       Top = 0
       Width = 634
@@ -138,6 +138,7 @@ object dlgWisql: TdlgWisql
       Lines.Strings = (
         'reSqlInput')
       ParentFont = False
+      PopupMenu = pmRichEdit
       ScrollBars = ssBoth
       TabOrder = 0
       WordWrap = False
@@ -620,6 +621,31 @@ object dlgWisql: TdlgWisql
       Caption = 'D&rop Database'
       OnExecute = Drop1Click
       OnUpdate = DatabaseDisconnectUpdate
+    end
+  end
+  object pmRichEdit: TPopupMenu
+    Left = 160
+    Top = 66
+    object Edit2: TMenuItem
+      Caption = '&Edit'
+      object Cut1: TMenuItem
+        Action = EditCut1
+      end
+      object Copy1: TMenuItem
+        Action = EditCopy1
+      end
+      object Paste1: TMenuItem
+        Action = EditPaste1
+      end
+      object Selectall1: TMenuItem
+        Action = EditSelectAll1
+      end
+      object N3: TMenuItem
+        Caption = '-'
+      end
+      object Undo1: TMenuItem
+        Action = EditUndo1
+      end
     end
   end
 end

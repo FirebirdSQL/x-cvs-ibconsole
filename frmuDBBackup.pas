@@ -32,6 +32,12 @@
 * Revisions:
 *
 *****************************************************************}
+
+{ TODO : 
+Check for bugs.  IBConsole has had problems in the past, but this could 
+have been an old IBX bug.  The current version of IBX, 4.2, does not 
+exihibit this behavior so the problem can be here. }
+
 unit frmuDBBackup;
 
 interface

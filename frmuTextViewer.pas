@@ -1,22 +1,3 @@
-{
- * The contents of this file are subject to the InterBase Public License
- * Version 1.0 (the "License"); you may not use this file except in
- * compliance with the License.
- * 
- * You may obtain a copy of the License at http://www.Inprise.com/IPL.html.
- * 
- * Software distributed under the License is distributed on an "AS IS"
- * basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. See
- * the License for the specific language governing rights and limitations
- * under the License.  The Original Code was created by Inprise
- * Corporation and its predecessors.
- * 
- * Portions created by Inprise Corporation are Copyright (C) Inprise
- * Corporation. All Rights Reserved.
- * 
- * Contributor(s): ______________________________________.
-}
-
 {****************************************************************
 *
 *  f r m u T e x t V i e w e r
@@ -39,7 +20,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   ComCtrls, ToolWin, StdCtrls, Menus, ImgList, Printers, IBServices, frmuDlgClass,
-  RichEditX, StdActns, ActnList;
+  RichEdit, StdActns, ActnList;
 
 type
   TfrmTextViewer = class(TForm)
@@ -59,7 +40,7 @@ type
     sbSaveAs: TToolButton;
     stbStatusBar: TStatusBar;
     tlbStandard: TToolBar;
-    reEditor: TRichEditX;
+    reEditor: TRichEdit;
     TextViewActions: TActionList;
     EditCopy1: TEditCopy;
     EditCut1: TEditCut;
@@ -101,7 +82,7 @@ type
 implementation
 
 uses
-  RichEdit, zluGlobal, zluContextHelp, frmuMain, frmuMessage, IB, IBErrorCodes;
+  zluGlobal, zluContextHelp, frmuMain, frmuMessage, IB, IBErrorCodes;
 
 {$R *.DFM}
 
@@ -135,7 +116,7 @@ function TfrmTextViewer.OpenTextViewer(const Service: TIBControlAndQueryService;
         const sFormCaption: string; const readonly:boolean=true): integer;
 begin
   Caption := sFormCaption;           // set caption for form
-  reEditor.SetFont;
+//  reEditor.SetFont;
   reEditor.Lines.Clear;
   reEditor.Readonly := readonly;
   Show;
@@ -161,18 +142,18 @@ end;
 
 procedure TfrmTextViewer.FormResize(Sender: TObject);
 begin
-  reEditor.UpdateCursorPos(stbStatusBar); // displays current cursor position in status bar
+//  reEditor.UpdateCursorPos(stbStatusBar); // displays current cursor position in status bar
 end;
 
 procedure TfrmTextViewer.FormShow(Sender: TObject);
 begin
-  reEditor.UpdateCursorPos(stbStatusBar); // displays current cursor position in status bar
-  reEditor.Modified := false;  
+//  reEditor.UpdateCursorPos(stbStatusBar); // displays current cursor position in status bar
+//  reEditor.Modified := false;
 end;
 
 procedure TfrmTextViewer.mnuEdFindClick(Sender: TObject);
 begin
-  reEditor.Find;
+//  reEditor.Find;
 end;
 
 procedure TfrmTextViewer.mnuFiExitClick(Sender: TObject);
@@ -244,7 +225,7 @@ function TfrmTextViewer.ShowText(const Data: TStringList;
 begin
   Caption := Title;
   reEditor.Lines.BeginUpdate;
-  reEditor.SetFont;  
+//  reEditor.SetFont;
   reEditor.Lines.Clear;
   reEditor.ReadOnly := readonly;
   reEditor.Lines.AddStrings (Data);
@@ -259,7 +240,7 @@ end;
 
 procedure TfrmTextViewer.EditFontExecute(Sender: TObject);
 begin
-  reEditor.ChangeFont;
+//  reEditor.ChangeFont;
 end;
 
 procedure TfrmTextViewer.EditCut1Update(Sender: TObject);
@@ -274,7 +255,7 @@ var
   lPrintText: TextFile;
 begin
   lPrintDialog := nil;
-  if ActiveControl is TRichEditX then
+  if ActiveControl is TRichEdit then
   begin
     try
       lPrintDialog := TPrintDialog.Create(Self);
@@ -283,9 +264,9 @@ begin
         begin
           AssignPrn(lPrintText);
           Rewrite(lPrintText);
-          Printer.Canvas.Font := TRichEditX(ActiveControl).Font;
-          for lLine := 0 to TRichEditX(ActiveControl).Lines.Count - 1 do
-            Writeln(lPrintText, TRichEditX(ActiveControl).Lines[lLine]);
+          Printer.Canvas.Font := TRichEdit(ActiveControl).Font;
+          for lLine := 0 to TRichEdit(ActiveControl).Lines.Count - 1 do
+            Writeln(lPrintText, TRichEdit(ActiveControl).Lines[lLine]);
           CloseFile(lPrintText);
         end
         else
@@ -307,7 +288,7 @@ end;
 
 procedure TfrmTextViewer.reEditorEnter(Sender: TObject);
 begin
-  TRichEditX(Sender).UpdateCursorPos(stbStatusBar);
+//  TRichEdit(Sender).UpdateCursorPos(stbStatusBar);
 end;
 
 procedure TfrmTextViewer.reEditorKeyPress(Sender: TObject; var Key: Char);

@@ -56,6 +56,8 @@ type
     edtUsername: TEdit;
     stxDatabaseName: TStaticText;
     cbCaseSensitive: TCheckBox;
+    cbCharacterSet: TComboBox;
+    Label2: TLabel;
     function FormHelp(Command: Word; Data: Integer; var CallHelp: Boolean): Boolean;
     procedure btnCancelClick(Sender: TObject);
     procedure btnConnectClick(Sender: TObject);
@@ -106,6 +108,9 @@ function DBConnect(var CurrSelDatabase: TibcDatabaseNode;
 var
   frmDBConnect: TfrmDBConnect;
   attachDialect: integer;
+  //Kris 13-Aug-2000 start
+  attachCharSet: string;
+  //Kris 13-Aug-2000 end
 begin
   frmDBConnect := nil;
   CurrSelDatabase.UserName := CurrSelServer.UserName;
@@ -116,11 +121,46 @@ begin
   begin
     try
       frmDBConnect:= TfrmDBConnect.Create(Application);
+
       frmDBConnect.stxDatabaseName.Caption := CurrSelDatabase.NodeName;
       frmDBConnect.edtUsername.Text := CurrSelDatabase.UserName;
       frmDBConnect.edtRole.Text := CurrSelDatabase.Role;
       frmDBConnect.cbDialect.ItemIndex := 2; // default to dialect 3
+      // Kris 12-Aug-2000 start
+      with frmDBConnect.cbCharacterSet do
+      begin
+        // This is temporary, list of vailable character sets is set in IBX
+        // and in another place in IBConsole, it should be provided by IBX
+        Items.Add('None');
+        Items.Add('ASCII');
+        Items.Add('BIG_5');
+        Items.Add('CYRL');
+        Items.Add('DOS437');
+        Items.Add('DOS850');
+        Items.Add('DOS852');
+        Items.Add('DOS857');
+        Items.Add('DOS860');
+        Items.Add('DOS861');
+        Items.Add('DOS863');
+        Items.Add('DOS865');
+        Items.Add('EUCJ_0208');
+        Items.Add('GB_2312');
+        Items.Add('ISO8859_1');
+        Items.Add('KSC_5601');
+        Items.Add('NEXT');
+        Items.Add('OCTETS');
+        Items.Add('SJIS_0208');
+        Items.Add('UNICODE_FSS');
+        Items.Add('WIN1250');
+        Items.Add('WIN1251');
+        Items.Add('WIN1252');
+        Items.Add('WIN1253');
+        Items.Add('WIN1254');
+        ItemIndex := 0;
+      end;
+      // Kris 12-Aug-2000 end
       frmDBConnect.ShowModal;
+      // Kris 12-Aug-2000 end
       if frmDBConnect.ModalResult = mrOK then
       begin
         // set username, password and role
@@ -130,13 +170,15 @@ begin
         begin
           CurrSelDatabase.Role := frmDBConnect.edtRole.Text;
           attachDialect := 3;
-        end
-        else
+        end else
         begin
           CurrSelDatabase.Role := frmDBConnect.edtRole.Text;
           attachDialect := 1;
         end;
         CurrSelDatabase.Database.SQLDialect := frmDBConnect.cbDialect.ItemIndex+1;
+        // Kris 12-Aug-2000 start
+        attachCharSet := frmDBConnect.cbCharacterSet.Text;
+        // Kris 12-Aug-2000 end
       end
       else
       begin
@@ -153,7 +195,7 @@ begin
       attachDialect := 3
     else
       attachDialect := 1;
-      
+
   // if a silent connect was specified or the proper login information was supplied
   try
     Screen.Cursor := crHourGlass;
@@ -181,6 +223,10 @@ begin
       else
         CurrSelDatabase.Database.Params.Add(Format('isc_dpb_sql_role_name=%s',[CurrSelDatabase.Role]));
       CurrSelDatabase.Database.Params.Add(Format('isc_dpb_SQL_dialect=%d',[attachDialect]));
+      // Kris 12-Aug-2000 start
+      if (attachCharSet <> '') and (attachCharSet <> 'None') then
+        CurrSelDatabase.Database.Params.Add('isc_dpb_lc_ctype=' + attachCharSet);
+      // Kris 12-Aug-2000 end
 
       // attempt to connect to the database
       CurrSelDatabase.Database.Connected := true;
@@ -189,12 +235,23 @@ begin
       // Check to see if the database dialect matches, the client dialect
       with CurrSelDatabase.Database do begin
         if not SilentConnect then begin
-          if DBSQLDialect <> SQLDialect then
+          //Kris 15-Aug-2000 start
+          //old code
+          //if DBSQLDialect <> SQLDialect then
+          //  DisplayMsg (WAR_DIALECT_MISMATCH,
+          //  Format ('Database dialect (%d) does not match client dialect (%d).',[DBSQLDialect, SQLDialect]));
+          if DBSQLDialect < SQLDialect then
             DisplayMsg (WAR_DIALECT_MISMATCH,
-            Format ('Database dialect (%d) does not match client dialect (%d).',[DBSQLDialect, SQLDialect]));
+            Format ('Database dialect (%d) lesser than client dialect (%d).',[DBSQLDialect, SQLDialect]));
+          //Kris 15-Aug-2000 end
         end else
           SQLDialect := DBSqlDialect;
+        // Kris 14-Aug-2000 start
+        gAppSettings[DEFAULT_DIALECT].Setting := SQLDialect;
+        gAppSettings[CHARACTER_SET].Setting := attachCharSet;
+        // Kris 14-Aug-2000 end
       end;
+
     end;
       result := true;
       Screen.Cursor := crDefault;
@@ -204,7 +261,7 @@ begin
       DisplayMsg(ERR_DB_CONNECT,E.Message);
       result := false;
       Screen.Cursor := crDefault;
-{ TODO: This was removed to remove a crash when connecting to a non-existent db }      
+{ TODO: This was removed to remove a crash when connecting to a non-existent db }
 //      CurrSelDatabase := nil;
     end;
   end;

@@ -259,7 +259,13 @@ var
   lStrVal: string;
 begin
   lStrVal := Trim(InputStr);
-  for i := 0 to Length(lStrVal) - 1 do
+  //Kris 13-Aug-2000 start
+  //old code
+  //for i := 0 to Length(lStrVal) - 1 do
+
+  //new code
+  for i := 1 to Length(lStrVal) do
+  //Kris 13-Aug-2000 old
   begin
     if (Ord(lStrVal[i]) in [32..126]) then
     begin

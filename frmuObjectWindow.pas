@@ -13,8 +13,8 @@
  * 
  * Portions created by Inprise Corporation are Copyright (C) Inprise
  * Corporation. All Rights Reserved.
- * 
- * Contributor(s): ______________________________________.
+ *
+ * Contributor(s): Jeff Overcash, Krzysztof Golko.
 }
 
 unit frmuObjectWindow;
@@ -24,7 +24,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, ToolWin, ComCtrls, ImgList, Buttons, Grids, DBGrids,
-  ActnList, Db, ExtCtrls, RichEditX, IBDatabase, IBCustomDataset, DBCtrls,
+  ActnList, Db, ExtCtrls, IBDatabase, IBCustomDataset, DBCtrls,
   IBTable;
 
 type
@@ -69,7 +69,7 @@ type
     objControl: TPageControl;
     tabDomains: TTabSheet;
     Label5: TLabel;
-    reConstraint: TRichEditX;
+    reConstraint: TRichEdit;
     tabTables: TTabSheet;
     ToolBar2: TToolBar;
     tbCols: TToolButton;
@@ -86,13 +86,13 @@ type
     ShowReferentialConstraints: TAction;
     tbRef: TToolButton;
     lvTableObjects: TListView;
-    reTriggerSource: TRichEditX;
+    reTriggerSource: TRichEdit;
     tabProcedures: TTabSheet;
     tabFunctions: TTabSheet;
     tabExceptions: TTabSheet;
     tabGenerators: TTabSheet;
     Splitter2: TSplitter;
-    reProcSource: TRichEditX;
+    reProcSource: TRichEdit;
     lvParams: TListView;
     lvFuncView: TListView;
     tabFilters: TTabSheet;
@@ -119,7 +119,7 @@ type
     edReturnVal: TEdit;
     edEntrypoint: TEdit;
     edModName: TEdit;
-    reMetadata: TRichEditX;
+    reMetadata: TRichEdit;
     lvDomains: TListView;
     lblFileName: TLabel;
     SplitterWnd: TSplitter;
@@ -472,14 +472,12 @@ begin
 end;
 
 procedure TfrmObjectView.pgcPropertiesChange(Sender: TObject);
-
 var
-  lSQLScript: TStringList;
   ObjName: String;
   IBExtract: TIBExtract;
-
+  ObjectType : TExtractObjectTypes;
+  ExtractTypes : TExtractTypes;
 begin
-
   with Sender as TPageControl do
   begin
     ObjName := cbObjectList.Items[cbObjectList.ItemIndex];
@@ -491,45 +489,46 @@ begin
       begin
         FMetadataRefreshList[FIdx] := false;
         IBExtract := TIBExtract.Create (self);
-        lSQLScript := TStringList.Create;
-        lSQLScript.Text := '';
         Screen.Cursor := crHourGlass;
-
-        with IBExtract do
-        begin
-          Database := FDatabase;
-          Items := lSQLScript;
-          ObjectName := ObjName;
-          ShowSystem := FShowSystem;
-
-          case FObjType of
-            NODE_DOMAINS:
-              ObjectType := eoDomain;
-            NODE_TABLES:
-              ObjectType := eoTable;
-            NODE_VIEWS:
-              ObjectType := eoView;
-            NODE_PROCEDURES:
-              ObjectType := eoProcedure;
-            NODE_FUNCTIONS:
-              ObjectType := eoFunction;
-            NODE_GENERATORS:
-              ObjectType := eoGenerator;
-            NODE_EXCEPTIONS:
-              ObjectType := eoException;
-            NODE_BLOB_FILTERS:
-              ObjectType := eoBLOBFilter;
-            NODE_ROLES:
-              ObjectType := eoRole;
+        ExtractTypes := [];
+        try
+          with IBExtract do
+          begin
+            Database := FDatabase;
+            ShowSystem := FShowSystem;
+            case FObjType of
+              NODE_DOMAINS:
+                ObjectType := eoDomain;
+              NODE_TABLES:
+              begin
+                ObjectType := eoTable;
+                ExtractTypes := [etTrigger, etDomain, etForeign];
+              end;
+              NODE_VIEWS:
+                ObjectType := eoView;
+              NODE_PROCEDURES:
+                ObjectType := eoProcedure;
+              NODE_FUNCTIONS:
+                ObjectType := eoFunction;
+              NODE_GENERATORS:
+                ObjectType := eoGenerator;
+              NODE_EXCEPTIONS:
+                ObjectType := eoException;
+              NODE_BLOB_FILTERS:
+                ObjectType := eoBLOBFilter;
+              NODE_ROLES:
+                ObjectType := eoRole;
+              else
+                ObjectType := eoDatabase;
+            end;
+            ExtractObject(ObjectType, ObjName, ExtractTypes);
+            reMetadata.Text := Items.Text;
+            reMetadata.Perform( EM_SCROLLCARET, 0, 0 );
           end;
-          ExtractObject;
-          Free;
+        finally
+          IBExtract.Free;
+          Screen.Cursor := crDefault;
         end;
-
-        reMetadata.Text := lSQLScript.Text;
-        reMetadata.Perform( EM_SCROLLCARET, 0, 0 );
-        Screen.Cursor := crDefault;
-        lSQLScript.Free;
       end;
     end;
 
@@ -539,6 +538,8 @@ begin
       IBTable.Database := FDatabase;
       IBTable.TableName := ObjName;
       IBTable.ReadOnly := false;
+      if not IBTable.Database.DefaultTransaction.Active then
+        IBTable.Database.DefaultTransaction.StartTransaction;
       IBTable.Active := true;
     end;
 

@@ -1,22 +1,5 @@
-{
- * The contents of this file are subject to the InterBase Public License
- * Version 1.0 (the "License"); you may not use this file except in
- * compliance with the License.
- * 
- * You may obtain a copy of the License at http://www.Inprise.com/IPL.html.
- * 
- * Software distributed under the License is distributed on an "AS IS"
- * basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. See
- * the License for the specific language governing rights and limitations
- * under the License.  The Original Code was created by Inprise
- * Corporation and its predecessors.
- * 
- * Portions created by Inprise Corporation are Copyright (C) Inprise
- * Corporation. All Rights Reserved.
- * 
- * Contributor(s): ______________________________________.
-}
-
+{****************************************************************
+*
 *  f r m u M a i n
 *
 ****************************************************************
@@ -38,7 +21,7 @@ uses Windows, Classes, Graphics, Forms, Controls, Menus, Dialogs, StdCtrls,
   Buttons, ExtCtrls, ComCtrls, ImgList, ToolWin, Grids, DBGrids, DBCtrls,
   Registry, zluibcClasses, IBServices, IB, Messages, SysUtils,
   RichEdit, DB, IBCustomDataSet, IBSQL, IBQuery, IBHeader, IBDatabase,
-  IBDatabaseInfo, RichEditX, frmuDlgClass, ActnList, StdActns, wisql, frmuObjectWindow,
+  IBDatabaseInfo, frmuDlgClass, ActnList, StdActns, wisql, frmuObjectWindow,
   IBExtract;
 
 type
@@ -79,8 +62,6 @@ type
     UnRegister2: TMenuItem;
     Login2: TMenuItem;
     ServerProperties2: TMenuItem;
-    AddCertificate2: TMenuItem;
-    RemoveCertificate2: TMenuItem;
     DiagnoseConnection2: TMenuItem;
     UserSecurity2: TMenuItem;
     ServerProperties3: TMenuItem;
@@ -122,8 +103,6 @@ type
     ServerConnectedActions: TActionList;
     ServerLogout: TAction;
     ServerSecurity: TAction;
-    ServerAddCertificate: TAction;
-    ServerRemoveCertificate: TAction;
     DatabaseConnectedActions: TActionList;
     DatabaseDisconnect: TAction;
     DatabaseProperties: TAction;
@@ -177,7 +156,6 @@ type
     Logout1: TMenuItem;
     Login1: TMenuItem;
     DiagnoseConnection1: TMenuItem;
-    AddCertificate1: TMenuItem;
     AddCertificate3: TMenuItem;
     Register2: TMenuItem;
     UserSecurity1: TMenuItem;
@@ -192,9 +170,6 @@ type
     Backup3: TMenuItem;
     Restore3: TMenuItem;
     N6: TMenuItem;
-    pmCertificates: TPopupMenu;
-    AddCertificate4: TMenuItem;
-    RemoveCertificate3: TMenuItem;
     ServerProperties: TAction;
     pmDatabases: TPopupMenu;
     Register5: TMenuItem;
@@ -305,8 +280,6 @@ type
     procedure tvMainMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure FormResize(Sender: TObject);
-    procedure lvObjectsSelectItem(Sender: TObject; Item: TListItem;
-      Selected: Boolean);
     procedure lvActionsDblClick(Sender: TObject);
     procedure lvObjectsKeyDown(Sender: TObject; var Key: Word;
       Shift: TShiftState);
@@ -321,8 +294,6 @@ type
     procedure ToolsSweepExecute(Sender: TObject);
     procedure ToolsSQLExecute(Sender: TObject);
     procedure ServerViewLogExecute(Sender: TObject);
-    procedure ServerAddCertificateExecute(Sender: TObject);
-    procedure ServerRemoveCertificateExecute(Sender: TObject);
     procedure DatabaseRestartExecute(Sender: TObject);
     procedure ToolsTransRecoverExecute(Sender: TObject);
     procedure DatabaseCreateExecute(Sender: TObject);
@@ -381,7 +352,6 @@ type
     procedure tvMainCollapsing(Sender: TObject; Node: TTreeNode;
       var AllowCollapse: Boolean);
     procedure ServerPropertiesUpdate(Sender: TObject);
-    procedure ServerRemoveCertificateUpdate(Sender: TObject);
     procedure UserDeleteUpdate(Sender: TObject);
     procedure UserAddExecute(Sender: TObject);
     procedure UserModifyExecute(Sender: TObject);
@@ -389,7 +359,6 @@ type
     procedure UserDeleteExecute(Sender: TObject);
     procedure ServerUsersExecute(Sender: TObject);
     procedure ObjectModifyUpdate(Sender: TObject);
-    procedure ServerAddCertificateUpdate(Sender: TObject);
     procedure DatabaseShutdownUpdate(Sender: TObject);
     procedure ObjectRefreshExecute(Sender: TObject);
 
@@ -399,8 +368,6 @@ type
     FCurrSelDatabase: TibcDatabaseNode;
     FCurrSelServer: TibcServerNode;
     FCurrSelTreeNode: TibcTreeNode;
-    FCurrSelCertificateID : String;
-    FCurrSelCertificateKey : String;
     FPrevSelTreeNode: TibcTreeNode;
     FRegistry: TRegistry;
     FTableData : TIBQuery;
@@ -422,7 +389,6 @@ type
       const SilentLogin: boolean): boolean;
     function DoDBDisconnect(var SelDatabaseNode: TibcDatabaseNode): boolean;
     function GetBackupFiles(const SelServerNode: TibcServerNode): integer;
-    function GetCertificates(const SelServerNode: TibcServerNode; const SelTreeNode: TibcTreeNode): integer;
     function GetDDLScript: integer;
     function GetDatabases(const SelServerNode: TibcServerNode): integer;
     function GetDBObjects(const SelDatabaseNode: TibcDatabaseNode; const SelTreeNode: TibcTreeNode; const ObjType: integer): integer;
@@ -479,7 +445,7 @@ uses frmuAbout,zluGlobal,frmuUser,frmuDBRegister,frmuServerRegister,dmuMain,
   frmuDBRestore,frmuDBBackup,
   frmuServerProperties,frmuDBProperties,frmuBackupAliasProperties,
   frmuDBCreate,frmuDBConnections,frmuDBValidation,frmuDBShutdown,
-  frmuCommDiag,frmuAddCertificate, zluContextHelp, frmuDBTransactions,
+  frmuCommDiag, zluContextHelp, frmuDBTransactions,
   frmuDBStatistics, frmuDispMemo, frmuModifyServerAlias, zluSQL, frmuDisplayBlob,
   dbTables, frmuTools, frmuDescription, frmuWindowList, CommCtrl, IBErrorCodes;
 
@@ -531,7 +497,7 @@ end;
 *               when the Main form is closed
 *
 *****************************************************************
-* Revisions:
+* * Revisions:
 *
 *****************************************************************}
 procedure TfrmMain.FormClose(Sender: TObject; var Action: TCloseAction);
@@ -958,17 +924,6 @@ try
         lvObjects.PopupMenu := pmUsers;
       end;
 
-      NODE_CERTIFICATES:
-      begin
-        FCurrSelServer := TibcServerNode(tvMain.Selected.Parent.Data);
-        FCurrSelCertificateID := '';
-        FCurrSelCertificateKey := '';
-        GetCertificates(FCurrSelServer,FCurrSelTreeNode);
-        FillObjectList(FCurrSelTreeNode);
-        lvObjects.PopupMenu := pmCertificates;
-        tvMain.PopupMenu := pmCertificates;
-      end;
-
       NODE_BACKUP_ALIAS:
       begin
         FCurrSelServer := TibcServerNode(tvMain.Selected.Parent.Parent.Data);
@@ -1081,9 +1036,6 @@ begin
       if (Assigned(FCurrSelServer)) and (not FCurrSelServer.Server.Active) and
         (FCurrSelServer.Version > 5) then
         DoServerLogin(false);
-
-    NODE_CERTIFICATES:
-      ServerAddCertificateExecute(self);
 
     NODE_DATABASE:
       if Assigned(FCurrSelServer) and
@@ -1320,9 +1272,8 @@ begin
     begin
       Database := FCurrSelDatabase.Database;
       ShowSystem := FViewsystemData;
-      ObjectType := eoDatabase;
-      Items := lSqlScript;
-      ExtractObject;
+      ExtractObject(eoDatabase);
+      lSqlScript.Text := Items.Text;
       Free;
     end;
   finally
@@ -1494,7 +1445,8 @@ begin
 
       lUserInfo := UserInfo[lUserCount];
       lObjectList.Add(Format('User Name%sFirst Name%sMiddle Name%sLast Name',[DEL,DEL,DEL]));
-      while (lUserInfo.UserName <> '') and (lUserInfo.UserName <> lPrevUsername) do
+      while {Assigned(lUserInfo) and }(lUserInfo.UserName <> '') and
+           (lUserInfo.UserName <> lPrevUsername) do
       begin
         lObjectList.Add(Format('%s%s%s%s%s%s%s',[lUserInfo.UserName,DEL,lUserInfo.FirstName,DEL,
           lUserInfo.MiddleName,DEL,lUserInfo.LastName]));
@@ -1824,11 +1776,6 @@ begin
           lCurrNode.ImageIndex := NODE_BACKUP_ALIASES_IMG;
           lCurrNode.SelectedIndex := NODE_BACKUP_ALIASES_IMG;
 
-          lCurrNode := tvMain.Items.AddChild(lServerNode, NODE_ARRAY[NODE_CERTIFICATES]);
-          lCurrNode.Data := TibcTreeNode.Create(tvMain,lCurrNode.ItemID,'',NODE_CERTIFICATES);
-          lCurrNode.ImageIndex := NODE_CERTIFICATES_IMG;
-          lCurrNode.SelectedIndex := NODE_CERTIFICATES_IMG;
-
           lCurrNode := tvMain.Items.AddChild(lServerNode, NODE_ARRAY[NODE_LOGS]);
           lCurrNode.Data := TibcTreeNode.Create(tvMain,lCurrNode.ItemID,'',NODE_LOGS);
           lCurrNode.ImageIndex := NODE_LOGS_IMG;
@@ -1931,7 +1878,6 @@ begin
     NODE_SERVERS,
     NODE_DATABASES,
     NODE_USERS,
-    NODE_CERTIFICATES,
     NODE_BACKUP_ALIASES:
      lvObjects.Tag := STATIC;
     else
@@ -2009,8 +1955,7 @@ begin
 
         NODE_BACKUP_ALIASES: loListItem.ImageIndex := NODE_BACKUP_ALIASES_IMG;
         NODE_USERS: loListItem.ImageIndex := NODE_USERS_IMG;
-        NODE_CERTIFICATES: loListItem.ImageIndex := NODE_CERTIFICATES_IMG;
-        
+
         NODE_DOMAINS: loListItem.ImageIndex := NODE_DOMAINS_IMG;
         NODE_TABLES: loListItem.ImageIndex := NODE_TABLES_IMG;
         NODE_VIEWS: loListItem.ImageIndex := NODE_VIEWS_IMG;
@@ -2310,62 +2255,6 @@ begin
   tvMain.Refresh;
 end;
 
-{****************************************************************
-*
-*  G e t C e r t i f i c a t e s ( )
-*
-****************************************************************
-*  Author: The Client Server Factory Inc.
-*  Date:   May 4, 1999
-*
-*  Input: SelServerNode - The selected server
-*         SelTreeNode - The selected treenode
-*
-*  Return: interger - Indicates the success/failure of the operation
-*
-*  Description: Retrieves a list of certificates for the selected server
-*
-*****************************************************************
-* Revisions:
-*
-*****************************************************************}
-function TfrmMain.GetCertificates(const SelServerNode: TibcServerNode; const SelTreeNode: TibcTreeNode): integer;
-var
-  lObjectList: TStringList;
-  i: integer;
-begin
-  lObjectList := TStringList.Create;
-  try
-    SelServerNode.Server.LoginPrompt := false;
-    try
-      if not SelServerNode.server.Active then
-        SelServerNode.server.Attach;
-      SelServerNode.Server.FetchLicenseInfo;
-      lObjectList.Add(Format('Certificate ID%sCertificate Key%sDescription',[DEL,DEL]));
-      for i:=0 to high(SelServerNode.Server.LicenseInfo.Key) do
-        lObjectList.Add(Format('%s%s%s%s%s',
-         [SelServerNode.Server.LicenseInfo.ID[i],DEL,
-         SelServerNode.Server.LicenseInfo.Key[i],DEL,
-         SelServerNode.Server.LicenseInfo.Desc[i]]));
-      SelTreeNode.ObjectList.Assign(lObjectList);
-      result := SUCCESS;
-    except
-      on E:EIBError do
-      begin
-        DisplayMsg(ERR_SERVER_SERVICE,E.Message + #13#10 + 'Cannot display server certificates');
-        result := FAILURE;
-        SelServerNode.Server.Active := true;
-        if (E.IBErrorCode = isc_lost_db_connection) or
-           (E.IBErrorCode = isc_unavailable) or
-           (E.IBErrorCode = isc_network_error) then
-          SetErrorState;
-      end;
-    end;
-  finally
-    lObjectList.Free;
-  end;
-end;
-
 procedure TfrmMain.mmiHeContentsClick(Sender: TObject);
 begin
    WinHelp(Handle,CONTEXT_HELP_FILE,HELP_FINDER,0);
@@ -2411,7 +2300,7 @@ begin
         NODE_SERVERS, NODE_BACKUP_ALIASES, NODE_DATABASES :
           tvMainDblClick(Nil);
 
-        NODE_BACKUP_ALIAS, NODE_USERS, NODE_CERTIFICATES :
+        NODE_BACKUP_ALIAS, NODE_USERS :
           tvMainDblClick(Nil);
       end;  // of case nodetype of
     end;
@@ -2434,15 +2323,6 @@ begin
 end;
 
 
-procedure TfrmMain.lvObjectsSelectItem(Sender: TObject; Item: TListItem;
-  Selected: Boolean);
-begin
-  if (FCurrSelTreeNode.NodeType = NODE_CERTIFICATES) then
-  begin
-    FCurrSelCertificateID := Item.Caption;
-    FCurrSelCertificateKey := Item.SubItems.Strings[0];
-  end;
-end;
 function TfrmMain.AliasExists(const AliasName: String): boolean;
 var
   lAliases: TStringList;
@@ -2917,95 +2797,6 @@ begin
   end;
 end;
 
-procedure TfrmMain.ServerAddCertificateExecute(Sender: TObject);
-var
-  lCertificateID, lCertificateKey: string;
-  ibcLicenser : TIBLicensingService;
-begin
-  ibcLicenser := TIBLicensingService.Create(self);
-  try
-    if Assigned(FCurrSelServer) and Assigned(FCurrSelTreeNode) then
-    begin
-      ibcLicenser.ServerName := FCurrSelServer.Servername;
-      ibcLicenser.Protocol := FCurrSelServer.Server.Protocol;
-      ibcLicenser.Params := FCurrSelServer.Server.Params;
-      ibcLicenser.LoginPrompt := false;
-      try
-        ibcLicenser.Attach;
-        if frmuAddCertificate.AddCertificate(lCertificateID, lCertificateKey) then
-        begin
-          Application.ProcessMessages;
-          Screen.Cursor := crHourGlass;
-          if not ibcLicenser.Active then
-            ibcLicenser.Attach;
-          ibcLicenser.ID := lCertificateID;
-          ibcLicenser.Key := lCertificateKey;
-          ibcLicenser.AddLicense;
-        end;
-      except
-        on E:EIBInterBaseError do
-        begin
-          DisplayMsg(ERR_INVALID_CERTIFICATE,E.Message);
-          if (E.IBErrorCode = isc_lost_db_connection) or
-             (E.IBErrorCode = isc_unavailable) or
-             (E.IBErrorCode = isc_network_error) then
-            SetErrorState;
-      end;
-    end;
-    end;
-  finally
-    Screen.Cursor := crDefault;
-    ibcLicenser.Free;
-    tvMainChange(nil,nil);
-  end;
-end;
-
-procedure TfrmMain.ServerRemoveCertificateExecute(Sender: TObject);
-var
-  ibcLicenser : TIBLicensingService;
-begin
-  ibcLicenser := TIBLicensingService.Create(self);
-
-  if MessageDlg(Format('Are you sure you want to remove certificate %s?',
-    [FCurrSelCertificateID]), mtConfirmation, [mbYes, mbNo], 0) = mrYes then
-  begin
-    try
-      if (Assigned(FCurrSelServer)) and (Assigned(FCurrSelTreeNode))
-        and (FCurrSelTreeNode.NodeType = NODE_CERTIFICATES) then
-      begin
-        if lvObjects.SelCount > 0 then
-        try
-          Screen.Cursor := crHourGlass;
-          Application.ProcessMessages;
-          ibcLicenser.ServerName := FCurrSelServer.ServerName;
-          ibcLicenser.Protocol := FCurrSelServer.Server.Protocol;
-          ibcLicenser.Params := FCurrSelServer.Server.Params;
-          ibcLicenser.LoginPrompt := false;
-
-          ibcLicenser.ID := FCurrSelCertificateID;
-          ibcLicenser.Key := FCurrSelCertificateKey;
-          ibcLicenser.Attach;
-          ibcLicenser.RemoveLicense;
-        except
-          on E:EIBError do
-          begin
-            DisplayMsg(ERR_INVALID_CERTIFICATE,E.Message + #13#10 +
-              'Unable to remove certificate.');
-            if (E.IBErrorCode = isc_lost_db_connection) or
-               (E.IBErrorCode = isc_unavailable) or
-               (E.IBErrorCode = isc_network_error) then
-              SetErrorState;
-        end;
-      end;
-      end;
-    finally
-      Screen.Cursor := crDefault;
-      ibcLicenser.Free;
-      tvMainChange(nil,nil);
-    end;
-  end;
-end;
-
 procedure TfrmMain.DatabaseRestartExecute(Sender: TObject);
 var
   lConfig: TIBConfigService;
@@ -3380,9 +3171,8 @@ end;
 
 procedure TfrmMain.EditFontExecute(Sender: TObject);
 begin
-  if ActiveControl is TRichEditX then
-    with (ActiveControl as TRichEditX) do
-      ChangeFont;
+//  if ActiveControl is TRichEdit then
+//    TRichEdit(ActiveControl).ChangeFont;
 end;
 
 procedure TfrmMain.DatabaseBackupExecute(Sender: TObject);
@@ -3875,7 +3665,7 @@ end;
 
 procedure TfrmMain.EditFontUpdate(Sender: TObject);
 begin
-  (Sender as TAction).Enabled := (ActiveControl is TRichEditX);
+  (Sender as TAction).Enabled := (ActiveControl is TRichEdit);
 end;
 
 
@@ -4039,48 +3829,53 @@ end;
 procedure TfrmMain.ObjectExtractExecute(Sender: TObject);
 var
   IBExtract: TIBExtract;
-  MetadataScript: TStringList;
-
+  ObjectType : TExtractObjectTypes;
+  ObjectName : String;
+  ExtractTypes : TExtractTypes;
 begin
-
   if Assigned(lvObjects.Selected) then
   begin
     IBExtract := TIBExtract.Create (self);
-    MetadataScript := TStringList.Create;
-    MetadataScript.Text := '';
     Screen.Cursor := crHourGlass;
-    with IBExtract do
-    begin
-      Database := FCurrSelDatabase.Database;
-      Items := MetadataScript;
-      ObjectName := lvObjects.Selected.Caption;
-      ShowSystem := FViewSystemData;
-      case FCurrSelTreeNode.NodeType of
-        NODE_DOMAINS:
-          ObjectType := eoDomain;
-        NODE_TABLES:
-          ObjectType := eoTable;
-        NODE_VIEWS:
-          ObjectType := eoView;
-        NODE_PROCEDURES:
-          ObjectType := eoProcedure;
-        NODE_FUNCTIONS:
-          ObjectType := eoFunction;
-        NODE_GENERATORS:
-          ObjectType := eoGenerator;
-        NODE_EXCEPTIONS:
-          ObjectType := eoException;
-        NODE_BLOB_FILTERS:
-          ObjectType := eoBLOBFilter;
-        NODE_ROLES:
-          ObjectType := eoRole;
+    try
+      with IBExtract do
+      begin
+        Database := FCurrSelDatabase.Database;
+        ShowSystem := FViewSystemData;
+        ObjectName := lvObjects.Selected.Caption;
+        ExtractTypes := [];
+        case FCurrSelTreeNode.NodeType of
+          NODE_DOMAINS:
+            ObjectType := eoDomain;
+          NODE_TABLES:
+          begin
+            ObjectType := eoTable;
+            ExtractTypes := [etDomain, etTrigger, etForeign];
+          end;
+          NODE_VIEWS:
+            ObjectType := eoView;
+          NODE_PROCEDURES:
+            ObjectType := eoProcedure;
+          NODE_FUNCTIONS:
+            ObjectType := eoFunction;
+          NODE_GENERATORS:
+            ObjectType := eoGenerator;
+          NODE_EXCEPTIONS:
+            ObjectType := eoException;
+          NODE_BLOB_FILTERS:
+            ObjectType := eoBLOBFilter;
+          NODE_ROLES:
+            ObjectType := eoRole;
+          else
+            ObjectType := eoDatabase;
+        end;
+        ExtractObject(ObjectType, ObjectName, ExtractTypes);
+        FCurrSelServer.ShowText(TStringList(Items), Format('Metadata for %s',[ObjectName]));
       end;
-      ExtractObject;
+    finally
       Screen.Cursor := crDefault;
-      FCurrSelServer.ShowText(MetadataScript, Format('Metadata for %s',[ObjectName]));
-      Free;
+      IBExtract.Free;
     end;
-    MetadataScript.Free;
   end;
 end;
 
@@ -4269,17 +4064,6 @@ begin
     (Sender as TAction).Enabled := true;
 end;
 
-procedure TfrmMain.ServerRemoveCertificateUpdate(Sender: TObject);
-begin
-  if FCurrSelTreeNode.NodeType  = NODE_CERTIFICATES then
-    if Assigned (FCurrSelServer) and (UpperCase(FCurrSelServer.UserName) = 'SYSDBA') then
-    (Sender as TAction).Enabled := Assigned(lvObjects.Selected)
-  else
-      (Sender as TAction).Enabled := false
-  else
-    (Sender as TAction).Enabled := false;
-end;
-
 procedure TfrmMain.UserDeleteUpdate(Sender: TObject);
 begin
   if Assigned(lvObjects.Selected) then
@@ -4371,24 +4155,10 @@ begin
   ServerLogoutExecute(nil);
 end;
 
-procedure TfrmMain.ServerAddCertificateUpdate(Sender: TObject);
-begin
-  if Assigned(FCurrSelServer) and Assigned (FCurrSelServer.Server) then
-    if UpperCase(FCurrSelServer.UserName) <> 'SYSDBA' then
-      (Sender as TAction).Enabled := false
-    else
-      if FCurrSelTreeNode.NodeType  = NODE_SERVERS then
-        (Sender as TAction).Enabled := false
-      else
-        (Sender as TAction).Enabled := FCurrSelServer.Server.Active
-  else
-    (Sender as TAction).Enabled := false;
-end;
-
 procedure TfrmMain.DatabaseShutdownUpdate(Sender: TObject);
 begin
   if Assigned(FCurrSelDatabase) and
-     Assigned (FCurrSelDatabase.Database) and  
+     Assigned (FCurrSelDatabase.Database) and
      Assigned (FCurrSelDatabase.Database.Handle) then
     if UpperCase(FCurrSelServer.UserName) = 'SYSDBA' then
       (Sender as TAction).Enabled := FCurrSelDatabase.Database.Connected

@@ -1,21 +1,3 @@
-{
- * The contents of this file are subject to the InterBase Public License
- * Version 1.0 (the "License"); you may not use this file except in
- * compliance with the License.
- * 
- * You may obtain a copy of the License at http://www.Inprise.com/IPL.html.
- * 
- * Software distributed under the License is distributed on an "AS IS"
- * basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. See
- * the License for the specific language governing rights and limitations
- * under the License.  The Original Code was created by InterBase
- * Software Corporation and its successors.
- * 
- * Portions created by Inprise Corporation are Copyright (C) Inprise
- * Corporation. All Rights Reserved.
- * 
- * Contributor(s): ______________________________________.
-}
 program IBConsole;
 
 {%ToDo 'IBConsole.todo'}
@@ -47,7 +29,6 @@ uses
   frmuDBConnections in 'frmuDBConnections.pas' {frmDBConnections},
   frmuDBShutdown in 'frmuDBShutdown.pas' {frmDBShutdown},
   frmuDBStatistics in 'frmuDBStatistics.pas' {frmDBStatistics},
-  frmuAddCertificate in 'frmuAddCertificate.pas' {frmAddCertificate},
   frmuDBValidationReport in 'frmuDBValidationReport.pas' {frmDBValidationReport},
   frmuDBTransactions in 'frmuDBTransactions.pas' {frmDBTransactions},
   frmuDBValidation in 'frmuDBValidation.pas' {frmDBValidation},

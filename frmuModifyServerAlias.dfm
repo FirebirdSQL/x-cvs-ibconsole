@@ -1,6 +1,6 @@
 object frmModifyServerAlias: TfrmModifyServerAlias
-  Left = 331
-  Top = 206
+  Left = 212
+  Top = 192
   BorderIcons = [biSystemMenu]
   BorderStyle = bsDialog
   Caption = 'Error Reading Alias'

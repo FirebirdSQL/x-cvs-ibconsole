@@ -14,7 +14,7 @@
  * Portions created by Inprise Corporation are Copyright (C) Inprise
  * Corporation. All Rights Reserved.
  * 
- * Contributor(s): ______________________________________.
+ * Contributor(s): Jeff Overcash, Krzysztof Golko.
 }
 
 {****************************************************************
@@ -90,7 +90,6 @@ type
     FCurrSelServer: TibcServerNode;
     FPassword: string;
     FSecurityService: TIBSecurityService;
-    FUserInfo : array of TUserInfo;
     function GetUserInfo(): boolean;
     function GetUserList(): boolean;
     function VerifyInputData(): boolean;
@@ -277,37 +276,7 @@ begin
             // try adding user to security database
             FSecurityService.AddUser();
             while (FSecurityService.IsServiceRunning) and (not gApplShutdown) do
-            begin
               Application.ProcessMessages;
-            end;
-                                                                              
-            // add to FUserInfo cache
-            // first find last user
-            lUserCount := 0;
-            while (lUserCount < Length(FUserInfo)) and (FUserInfo[lUserCount].Username <> '') do
-            begin
-              Inc(lUserCount);
-            end;
-
-            // if count is less then length then a hole was found
-            // fill hole with new user infomation
-            if lUserCount < Length(FUserInfo) then
-            begin
-              FUserInfo[lUserCount].Username := UpperCase(edtUsername.Text);
-              FUserInfo[lUserCount].FirstName := edtFName.Text;
-              FUserInfo[lUserCount].MiddleName := edtMName.Text;
-              FUserInfo[lUserCount].LastName := edtLName.Text;
-            end
-            else                       // if no hole found then add to end
-            begin
-              if lUserCount >= Length(FUserInfo) then
-                SetLength(FUserInfo, lUserCount + 10);
-
-              FUserInfo[lUserCount].Username := UpperCase(edtUsername.Text);
-              FUserInfo[lUserCount].FirstName := edtFName.Text;
-              FUserInfo[lUserCount].MiddleName := edtMName.Text;
-              FUserInfo[lUserCount].LastName := edtLName.Text;
-            end;
           except                       // if an exception occurs then trap it
             on E:EIBError do           // and show error message
             begin
@@ -378,11 +347,6 @@ begin
               FSecurityService.Params.Assign(FCurrSelServer.Server.Params);
               FSecurityService.Attach();
             end;
-
-            FUserInfo[lUserCount].FirstName := edtFName.Text;
-            FUserInfo[lUserCount].MiddleName := edtMName.Text;
-            FUserInfo[lUserCount].LastName := edtLName.Text;
-
           except                       // if an exception occurs then trap it
             on E:EIBError do           // and show error message
             begin
@@ -459,8 +423,6 @@ end;
 *****************************************************************}
 procedure TfrmUserInfo.btnDeleteClick(Sender: TObject);
 var
-  lUserCount : Integer;
-  i          : Integer;
   lConfirmed : Boolean;
 begin
   lConfirmed := False;
@@ -507,18 +469,6 @@ begin
         while (FSecurityService.IsServiceRunning) and (not gApplShutdown) do
         begin
           Application.ProcessMessages;
-        end;
-
-        // delete user from cache
-        i := cbUsername.Items.IndexOf(cbUsername.Text);
-        if i <> -1 then
-        begin
-          lUserCount := i;
-          while lUserCount < High(FUserInfo) do
-          begin
-            FUserInfo[lUserCount] := FUserInfo[lUserCount+1];
-            Inc(lUserCount);
-          end;
         end;
       except                           // if an exception occurs then trap it
         on E:EIBError do               // and display an error message
@@ -679,16 +629,22 @@ end;
 *****************************************************************}
 function TfrmUserInfo.GetUserInfo(): boolean;
 var
-  lUserInfo: TUserInfo;
+  lUserInfo: TUserInfo; //**PC
   i : Integer;
 begin
   Result := True;
   try
     Screen.Cursor := crHourGlass;
-    i := cbUsername.Items.IndexOf(cbUsername.Text);
-    if i <> -1 then
-    begin
-      lUserInfo := FUserInfo[i];
+    i := 0;
+//    lUserInfo := nil;  //**PC
+    while (i < FSecurityService.UserInfoCount) {and
+          not Assigned(lUserInfo)} do
+      if cbUsername.Text = FSecurityService.UserInfo[i].UserName then
+        lUserInfo := FSecurityService.UserInfo[i]
+      else
+        Inc(i);
+//    if Assigned(lUserInfo) then
+//    begin
       edtPassword.Text := DUMMY_PASSWORD;
       FPassword := '';
       edtConfirmPassword.text := DUMMY_PASSWORD;
@@ -696,9 +652,9 @@ begin
       edtFName.Text := lUserInfo.FirstName;
       edtMName.Text := lUserInfo.MiddleName;
       edtLName.Text := lUserInfo.LastName;
-    end
-    else
-      Result := False;
+//    end
+//    else
+//      Result := False;
   finally
     Screen.Cursor := crDefault;      // change cursor to default
   end;
@@ -725,9 +681,6 @@ end;
 *
 *****************************************************************}
 function TfrmUserInfo.GetUserList(): boolean;
-var
-  lUserCount: integer;
-  lPrevUsername : String;
 begin
   result := true;
   try
@@ -751,24 +704,6 @@ begin
       begin
         Application.ProcessMessages;
       end;
-
-      lUserCount := 0;
-      lPrevUsername := '';
-      FUserInfo[lUserCount] := FSecurityService.UserInfo[lUserCount];
-
-      // go through list of users and add to combo box
-      while (FUserInfo[lUserCount].UserName <> '') and (FUserInfo[lUserCount].UserName <> lPrevUsername) do
-      begin
-        lPrevUsername := FUserInfo[lUserCount].UserName;
-        inc(lUserCount);
-
-        if (lUserCount >= Length(FUserInfo)) then
-          SetLength(FUserInfo, (lUserCount + 10));
-
-        if lPrevUsername <> FSecurityService.UserInfo[lUserCount].Username then
-          FUserInfo[lUserCount] := FSecurityService.UserInfo[lUserCount];
-      end;
-
     except                             // if an exception occurs then trap it
       on E:EIBError do                 // and show error message
       begin
@@ -853,14 +788,10 @@ var
   lUserCount : Integer;
 begin
   try
-    lUserCount := 0;
     cbUsername.Items.Clear;
 
-    while (lUserCount <= High(FUserInfo)) and (FUserInfo[lUserCount].Username <> '') do
-    begin
-      cbUsername.Items.Add(FUserInfo[lUserCount].Username);
-      Inc(lUserCount);
-    end;
+    for lUserCount := 0 to FSecurityService.UserInfoCount - 1 do
+      cbUsername.Items.Add(FSecurityService.UserInfo[lUserCount].Username);
 
     if cbUsername.Items.Count > 0 then // if there are users then
     begin                              // change form to display user state
@@ -908,7 +839,7 @@ end;
 procedure TfrmUserInfo.FormCreate(Sender: TObject);
 begin
   inherited;
-  SetLength(FUserInfo, 10);
+//  SetLength(FUserInfo, 10);
 end;
 
 procedure TfrmUserInfo.WMNCLButtonDown( var Message: TWMNCLButtonDown );

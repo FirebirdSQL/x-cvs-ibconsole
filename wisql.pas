@@ -23,7 +23,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  Menus, ComCtrls, ToolWin, ExtCtrls, StdCtrls, RichEditX, Grids, DBGrids,
+  Menus, ComCtrls, ToolWin, ExtCtrls, StdCtrls, Grids, DBGrids,
   Db, ImgList, StdActns, ActnList, zluibcClasses, IB, IBDatabase, IBCustomDataset,
   zluSQL;
 
@@ -59,7 +59,7 @@ type
     TabData: TTabSheet;
     dbgSQLResults: TDBGrid;
     TabResults: TTabSheet;
-    reSqlOutput: TRichEditX;
+    reSqlOutput: TRichEdit;
     splISQLHorizontal: TSplitter;
     GridSource: TDataSource;
     pmClientDialect: TPopupMenu;
@@ -87,7 +87,7 @@ type
     N5: TMenuItem;
     Connect1: TMenuItem;
     pnlEnterSQL: TPanel;
-    reSqlInput: TRichEditX;
+    reSqlInput: TRichEdit;
     stbISQL: TStatusBar;
     Print1: TMenuItem;
     Close1: TMenuItem;
@@ -159,6 +159,14 @@ type
     ToolButton12: TToolButton;
     ToolButton13: TToolButton;
     ToolButton20: TToolButton;
+    pmRichEdit: TPopupMenu;
+    Edit2: TMenuItem;
+    Paste1: TMenuItem;
+    Copy1: TMenuItem;
+    Cut1: TMenuItem;
+    Undo1: TMenuItem;
+    Selectall1: TMenuItem;
+    N3: TMenuItem;
     procedure QueryExecuteExecute(Sender: TObject);
     procedure QueryLoadScriptExecute(Sender: TObject);
     procedure QuerySaveScriptExecute(Sender: TObject);
@@ -333,8 +341,9 @@ begin
           mtConfirmation, mbYesNoCancel, 0) <> idYes then Exit;
       reSQLInput.PlainText := true;
       reSQLInput.Lines.SaveToFile(lSaveDialog.FileName);
-      reSQLInput.SetModified(False,false,stbISQL);
-      reSQLInput.PlainText := false;      
+      // Kris comments
+      // reSQLInput.SetModified(False,false,stbISQL);
+      reSQLInput.PlainText := false;
     end;
   end
   finally
@@ -409,7 +418,8 @@ begin
   end;
 
   reSQLOutput.Clear;
-  reSQLOutput.SetFont;
+  // Kris coomented
+  // reSQLOutput.SetFont;
   ISQLObj := nil;
   Stats := nil;
   try
@@ -527,9 +537,10 @@ procedure TdlgWisql.ShowDialog;
 begin
   reSQLInput.Lines.Clear;
   reSQLOutput.Lines.Clear;
-  reSQLInput.ObjectName := OBJECTNAME;
-  reSQLInput.SetFont;
-  reSQLOutput.SetFont;
+  // Kris commented
+  // reSQLInput.ObjectName := OBJECTNAME;
+  // reSQLInput.SetFont;
+  // reSQLOutput.SetFont;
   frmMain.UpdateWindowList(Caption, TObject(Self), true);
   if Assigned (FDatabase) then
   begin
@@ -566,7 +577,8 @@ end;
 /////////////////////////////////////////////////////////////
 procedure TdlgWisql.UpdateCursor(Sender: TObject);
 begin
-  TRichEditX(Sender).UpdateCursorPos(stbISQL);
+  // Kris commented
+  // TRichEditX(Sender).UpdateCursorPos(stbISQL);
 end;
 
 /////////////////////////////////////////////////////////////
@@ -744,7 +756,8 @@ begin
 
   { On create, the input window is always 1/2 of the window }
   reSQLInput.Height := Self.Height div 2;
-  reSQLOutput.SetFont;
+  // Kris commented
+  // reSQLOutput.SetFont;
 
   FQueryBuffer := TQryList.Create;
 end;
@@ -791,17 +804,19 @@ end;
 //////////////////////////////////////////////////////////
 procedure TdlgWisql.EditFindExecute(Sender: TObject);
 begin
-  (ActiveControl as TRichEditX).Find;
+  // Kris commented
+  //(ActiveControl as TRichEditX).Find;
 end;
 
 //////////////////////////////////////////////////////////
 procedure TdlgWisql.EditFindUpdate(Sender: TObject);
 begin
-  if (ActiveControl is TRichEditX) then
-    with (ActiveControl as TRichEditX) do
-      (Sender as TAction).Enabled := true
-  else
-    (Sender as TAction).Enabled := false;
+  // Kris commented
+  // if (ActiveControl is TRichEditX) then
+  //   with (ActiveControl as TRichEditX) do
+  //     (Sender as TAction).Enabled := true
+  // else
+  //   (Sender as TAction).Enabled := false;
 end;
 
 /////////////////////////////////////////////////////////////
@@ -817,7 +832,8 @@ var
 begin
   try
     reSQLOutput.Clear;
-    reSQLOutput.SetFont;
+    // Kris commented
+    // reSQLOutput.SetFont;
     ISQLObj := TIBSqlObj.Create (Self);
     with ISQLObj do
     begin
@@ -923,8 +939,9 @@ end;
 /////////////////////////////////////////////////////////////
 procedure TdlgWisql.EditFontExecute(Sender: TObject);
 begin
-  reSQLInput.ObjectName := OBJECTNAME;
-  reSQLInput.ChangeFont;
+  // Kris commented
+  // reSQLInput.ObjectName := OBJECTNAME;
+  // reSQLInput.ChangeFont;
 end;
 
 /////////////////////////////////////////////////////////////
@@ -992,7 +1009,7 @@ var
   lPrintText: TextFile;
 begin
   lPrintDialog := nil;
-  if ActiveControl is TRichEditX then
+  if ActiveControl is TRichEdit then
   begin
     try
       lPrintDialog := TPrintDialog.Create(Self);
@@ -1001,9 +1018,9 @@ begin
         begin
           AssignPrn(lPrintText);
           Rewrite(lPrintText);
-          Printer.Canvas.Font := TRichEditX(ActiveControl).Font;
-          for lLine := 0 to TRichEditX(ActiveControl).Lines.Count - 1 do
-            Writeln(lPrintText, TRichEditX(ActiveControl).Lines[lLine]);
+          Printer.Canvas.Font := (ActiveControl as TRichEdit).Font;
+          for lLine := 0 to (ActiveControl as TRichEdit).Lines.Count - 1 do
+            Writeln(lPrintText, (ActiveControl as TrichEdit).Lines[lLine]);
           CloseFile(lPrintText);
         end;
       except on E: Exception do

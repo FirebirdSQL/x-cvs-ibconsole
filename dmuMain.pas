@@ -1,21 +1,3 @@
-{
- * The contents of this file are subject to the InterBase Public License
- * Version 1.0 (the "License"); you may not use this file except in
- * compliance with the License.
- * 
- * You may obtain a copy of the License at http://www.Inprise.com/IPL.html.
- * 
- * Software distributed under the License is distributed on an "AS IS"
- * basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. See
- * the License for the specific language governing rights and limitations
- * under the License.  The Original Code was created by Inprise
- * Corporation and its predecessors.
- * 
- * Portions created by Inprise Corporation are Copyright (C) Inprise
- * Corporation. All Rights Reserved.
- * 
- * Contributor(s): ______________________________________.
-}
 {****************************************************************
 *
 *  d m u M a i n
@@ -297,22 +279,18 @@ begin
 
   ObjectList.Add(Format('Name%sType%sCharacter Set%sCollation%sDefault Value%sAllow Nulls', [DEL,DEL,DEL,DEL,DEL]));
 
-  lQry := nil;
-  IBExtract := nil;
+  lQry := TIBSQl.Create (Database);
+  IBExtract := TIBExtract.Create (Database);
   try
-    lQry := TIBSQl.Create (self);
-    IBExtract := TIBExtract.Create (self);
-    IBExtract.Database := Database;
-    lQry.Database := Database;
     with lQry do
     begin
-      Transaction := Database.DefaultTransaction;
-
       lSQLStr := 'SELECT A.RDB$FIELD_NAME, A.RDB$FIELD_SOURCE,B.RDB$FIELD_TYPE, B.RDB$SEGMENT_LENGTH,';
       lSQLStr := Format('%s B.RDB$FIELD_SUB_TYPE,B.RDB$FIELD_LENGTH,B.RDB$FIELD_SCALE,', [lSQLStr]);
       lSQLStr := Format('%s B.RDB$DEFAULT_SOURCE DEF_DOM,A.RDB$DEFAULT_SOURCE DEF_NATIVE,', [lSQLStr]);
       lSQLStr := Format('%s A.RDB$NULL_FLAG NULLS1, B.RDB$NULL_FLAG NULLS2, B.RDB$SYSTEM_FLAG,', [lSQLStr]);
-      lSQLStr := Format('%s B.RDB$DIMENSIONS, B.RDB$CHARACTER_LENGTH, B.RDB$FIELD_PRECISION,', [lSQLStr]);
+      lSQLStr := Format('%s B.RDB$DIMENSIONS, B.RDB$CHARACTER_LENGTH,', [lSQLStr]);
+      if IBExtract.DatabaseInfo.ODSMajorVersion >= ODS_VERSION10 then
+        lSQLStr := Format('%s B.RDB$FIELD_PRECISION,', [lSQLStr]);
       lSQLStr := Format('%s B.RDB$CHARACTER_SET_ID, B.RDB$COLLATION_ID FROM RDB$RELATION_FIELDS A, RDB$FIELDS B WHERE', [lSQLStr]);
       lSQLStr := Format('%s A.RDB$RELATION_NAME = ''%s'' AND', [lSQLStr, TableName]);
       lSQLStr := Format('%s A.RDB$FIELD_SOURCE = B.RDB$FIELD_NAME', [lSQLStr]);
@@ -335,23 +313,31 @@ begin
             else
               len := FieldByName('RDB$CHARACTER_LENGTH').AsInteger;
 
-            lFieldType := Format('%s %s',[lFieldType , IBExtract.GetFieldType (FieldByName('RDB$FIELD_TYPE').AsInteger,
+            if IBExtract.DatabaseInfo.ODSMajorVersion >= ODS_VERSION10 then
+              lFieldType := Format('%s %s',[lFieldType , IBExtract.GetFieldType (FieldByName('RDB$FIELD_TYPE').AsInteger,
                                                          FieldByName('RDB$FIELD_SUB_TYPE').AsInteger,
                                                          FieldByName('RDB$FIELD_SCALE').AsInteger,
                                                          Len,
                                                          FieldByName('RDB$FIELD_PRECISION').AsInteger,
+                                                         FieldByName('RDB$SEGMENT_LENGTH').AsInteger)])
+            else
+              lFieldType := Format('%s %s',[lFieldType , IBExtract.GetFieldType (FieldByName('RDB$FIELD_TYPE').AsInteger,
+                                                         FieldByName('RDB$FIELD_SUB_TYPE').AsInteger,
+                                                         FieldByName('RDB$FIELD_SCALE').AsInteger,
+                                                         Len,
+                                                         0,
                                                          FieldByName('RDB$SEGMENT_LENGTH').AsInteger)]);
 
             Charset := '';
             if not (FieldByName('RDB$CHARACTER_SET_ID').IsNull) and
                (FieldByName('RDB$CHARACTER_SET_ID').AsInteger <> 0) then
-              Charset := IBExtract.GetCharacterSet (FieldByName('RDB$CHARACTER_SET_ID').AsInteger, 0, false);
+              Charset := IBExtract.GetCharacterSets(FieldByName('RDB$CHARACTER_SET_ID').AsInteger, 0, false);
 
             Collation := '';
             if (not FieldByName('RDB$COLLATION_ID').IsNull) and
                (FieldByName('RDB$COLLATION_ID').AsInteger <> 0) then
-              Collation := IBExtract.GetCharacterSet (FieldByName('RDB$CHARACTER_SET_ID').AsInteger,
-                                                      FieldByName('RDB$COLLATION_ID').AsInteger, false);
+              Collation := IBExtract.GetCharacterSets(FieldByName('RDB$CHARACTER_SET_ID').AsInteger,
+                                                      FieldByName('RDB$COLLATION_ID').AsInteger, true);
 
 
             lAllowNulls := 'Yes';
@@ -1743,8 +1729,17 @@ function TdmMain.GetFunctiondata(var ObjectList: TStringList;
                                      Returnval: String;
                                  const SelDatabaseNode: TIBDatabase;
                                  const FuncName: String): integer;
+const
+  FunctionSQL =
+    'SELECT RDB$RETURN_ARGUMENT, RDB$ARGUMENT_POSITION, RDB$MECHANISM, ' +
+    '       RDB$MODULE_NAME, RDB$ENTRYPOINT, RDB$FIELD_TYPE, ' +
+    '       RDB$FIELD_SCALE, RDB$FIELD_LENGTH, RDB$FIELD_SUB_TYPE, ' +
+    '       RDB$FIELD_PRECISION ' +
+    'FROM RDB$FUNCTIONS F, RDB$FUNCTION_ARGUMENTS FA ' +
+    'WHERE FA.RDB$FUNCTION_NAME = :FunctionName AND ' +
+    ' FA.RDB$FUNCTION_NAME = F.RDB$FUNCTION_NAME';
+
 var
-  lSQLStr,
   lParamType,
   lFieldType: String;
   lQry: TIBSQL;
@@ -1759,21 +1754,14 @@ begin
   lQry := nil;
   IBExtract := nil;
   try
-    lQry := TIBSQL.Create(self);
-    IBExtract := TIBExtract.Create(self);
+    lQry := TIBSQL.Create(SelDatabaseNode);
+    IBExtract := TIBExtract.Create(SelDatabaseNode);
     with lQry do
     begin
-      Database := SelDatabaseNode;
-      Transaction := SelDatabaseNode.DefaultTransaction;
-      lSQLStr := 'select rdb$return_argument, rdb$argument_position, rdb$mechanism,';
-      lSQLStr := Format('%s rdb$module_name, rdb$entrypoint, rdb$field_type,', [lSQLStr]);
-      lSQLStr := Format('%s rdb$field_scale, rdb$field_length, rdb$field_sub_type,',[lSQLStr]);
-      lSQLStr := Format('%s rdb$field_precision, rdb$character_length from rdb$functions f,',[lSQLStr]);
-      lSQLStr := Format('%s rdb$function_arguments fa where rdb$function_name = ''%s''',[lSQLStr, FuncName]);
-      lSQLStr := Format('%s and fa.rdb$function_name = f.rdb$function_name',[lSQLStr, FuncName]);
 
       SQL.Clear;
-      SQL.Add(lSQLStr);
+      SQL.Text := FunctionSQL;
+      Params.ByName('FunctionName').AsString := FuncName;
       try
         ExecQuery;
         while not EOF do
@@ -1784,7 +1772,7 @@ begin
           lFieldType := IBExtract.GetFieldType (FieldByName('RDB$FIELD_TYPE').AsInteger,
                           FieldByName('RDB$FIELD_SUB_TYPE').AsInteger,
                           FieldByName('RDB$FIELD_SCALE').AsInteger,
-                          FieldByName('RDB$CHARACTER_LENGTH').AsInteger,
+                          FieldByName('RDB$FIELD_LENGTH').AsInteger,
                           FieldByName('RDB$FIELD_PRECISION').AsInteger,
                           0);
 
@@ -2176,12 +2164,12 @@ begin
           Charset := '';
           if not (FieldByName('RDB$CHARACTER_SET_ID').IsNull) and
              (FieldByName('RDB$CHARACTER_SET_ID').AsInteger <> 0) then
-            Charset := IBExtract.GetCharacterSet (FieldByName('RDB$CHARACTER_SET_ID').AsInteger, 0, false);
+            Charset := IBExtract.GetCharacterSets(FieldByName('RDB$CHARACTER_SET_ID').AsInteger, 0, false);
 
           Collation := '';
           if (not FieldByName('RDB$COLLATION_ID').IsNull) and
              (FieldByName('RDB$COLLATION_ID').AsInteger <> 0) then
-            Collation := IBExtract.GetCharacterSet (FieldByName('RDB$CHARACTER_SET_ID').AsInteger,
+            Collation := IBExtract.GetCharacterSets(FieldByName('RDB$CHARACTER_SET_ID').AsInteger,
                            FieldByName('RDB$COLLATION_ID').AsInteger, false);
 
 

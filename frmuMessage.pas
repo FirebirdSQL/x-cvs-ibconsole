@@ -1,22 +1,3 @@
-{
- * The contents of this file are subject to the InterBase Public License
- * Version 1.0 (the "License"); you may not use this file except in
- * compliance with the License.
- * 
- * You may obtain a copy of the License at http://www.Inprise.com/IPL.html.
- * 
- * Software distributed under the License is distributed on an "AS IS"
- * basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. See
- * the License for the specific language governing rights and limitations
- * under the License.  The Original Code was created by Inprise
- * Corporation and its predecessors.
- * 
- * Portions created by Inprise Corporation are Copyright (C) Inprise
- * Corporation. All Rights Reserved.
- * 
- * Contributor(s): ______________________________________.
-}
-
 {****************************************************************
 *
 *  f r m u M e s s a g e
@@ -79,7 +60,6 @@ Const
   ERR_GET_TABLES = 0018;
   ERR_GET_VIEWS = 0019;
   ERR_SERVICE = 0020;
-  ERR_INVALID_CERTIFICATE = 0024;
   ERR_NUMERIC_VALUE = 0025;
   ERR_GET_TABLE_DATA = 0026;
   ERR_DB_ALIAS = 0027;
@@ -259,8 +239,6 @@ begin
         frmMessage.stxSummaryMsg.Caption := 'Unable to retrieve a list of views.';
       ERR_SERVICE:
         frmMessage.stxSummaryMsg.Caption := 'Invalid service. Please select a service from the list.';
-      ERR_INVALID_CERTIFICATE:
-        frmMessage.stxSummaryMsg.Caption := 'The certificate could not be validated based on the information given. Please recheck the id and key information.';
       ERR_NUMERIC_VALUE:
         frmMessage.stxSummaryMsg.Caption := 'Invalid numeric value. Please enter a valid numeric value.';
       ERR_GET_TABLE_DATA:

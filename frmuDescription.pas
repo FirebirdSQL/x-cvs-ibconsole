@@ -22,12 +22,12 @@ unit frmuDescription;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  frmuDlgClass, StdCtrls, ComCtrls, RichEditX;
+  ComCtrls, Controls, StdCtrls, Classes,
+  frmuDlgClass;
 
 type
   TfrmDescription = class(TDialog)
-    reDescription: TRichEditX;
+    reDescription: TRichEdit;
     Button1: TButton;
     Button2: TButton;
   private

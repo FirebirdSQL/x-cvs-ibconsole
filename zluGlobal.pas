@@ -1,22 +1,3 @@
-{
- * The contents of this file are subject to the InterBase Public License
- * Version 1.0 (the "License"); you may not use this file except in
- * compliance with the License.
- * 
- * You may obtain a copy of the License at http://www.Inprise.com/IPL.html.
- * 
- * Software distributed under the License is distributed on an "AS IS"
- * basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. See
- * the License for the specific language governing rights and limitations
- * under the License.  The Original Code was created by Inprise
- * Corporation and its predecessors.
- * 
- * Portions created by Inprise Corporation are Copyright (C) Inprise
- * Corporation. All Rights Reserved.
- * 
- * Contributor(s): ______________________________________.
-}
-
 {****************************************************************
 *
 *  z l u G l o b a l
@@ -72,7 +53,7 @@ const
   TRA_DFLT = 2;  // default transaction
 
   { Number of nodes starting at 0 }
-  NODES = 41;
+  NODES = 39;
 
   { Tree Nodes.  Must be in the same order as NODE_ARRAY below! }
   NODE_SERVERS = 000;
@@ -83,39 +64,37 @@ const
   NODE_BACKUP_ALIAS = 005;
   NODE_USERS = 006;
   NODE_USER = 007;
-  NODE_CERTIFICATES = 008;
-  NODE_CERTIFICATE = 009;
-  NODE_DOMAINS = 010;
-  NODE_DOMAIN = 011;
-  NODE_TABLES = 012;
-  NODE_TABLE = 013;
-  NODE_VIEWS = 014;
-  NODE_VIEW = 015;
-  NODE_PROCEDURES = 016;
-  NODE_PROCEDURE = 017;
-  NODE_FUNCTIONS = 018;
-  NODE_FUNCTION = 019;
-  NODE_GENERATORS = 020;
-  NODE_GENERATOR = 021;
-  NODE_EXCEPTIONS = 022;
-  NODE_EXCEPTION = 023;
-  NODE_BLOB_FILTERS = 024;
-  NODE_BLOB_FILTER = 025;
-  NODE_ROLES = 026;
-  NODE_ROLE = 027;
-  NODE_COLUMNS = 028;
-  NODE_COLUMN = 029;
-  NODE_INDEXES = 030;
-  NODE_INDEX = 031;
-  NODE_REFERENTIAL_CONSTRAINTS = 032;
-  NODE_REFERENTIAL_CONSTRAINT = 033;
-  NODE_UNIQUE_CONSTRAINTS = 034;
-  NODE_UNIQUE_CONSTRAINT = 035;
-  NODE_CHECK_CONSTRAINTS = 036;
-  NODE_CHECK_CONSTRAINT = 037;
-  NODE_TRIGGERS = 038;
-  NODE_TRIGGER = 039;
-  NODE_LOGS = 040;
+  NODE_DOMAINS = 008;
+  NODE_DOMAIN = 009;
+  NODE_TABLES = 010;
+  NODE_TABLE = 011;
+  NODE_VIEWS = 012;
+  NODE_VIEW = 013;
+  NODE_PROCEDURES = 014;
+  NODE_PROCEDURE = 015;
+  NODE_FUNCTIONS = 016;
+  NODE_FUNCTION = 017;
+  NODE_GENERATORS = 018;
+  NODE_GENERATOR = 019;
+  NODE_EXCEPTIONS = 020;
+  NODE_EXCEPTION = 021;
+  NODE_BLOB_FILTERS = 022;
+  NODE_BLOB_FILTER = 023;
+  NODE_ROLES = 024;
+  NODE_ROLE = 025;
+  NODE_COLUMNS = 026;
+  NODE_COLUMN = 027;
+  NODE_INDEXES = 028;
+  NODE_INDEX = 029;
+  NODE_REFERENTIAL_CONSTRAINTS = 030;
+  NODE_REFERENTIAL_CONSTRAINT = 031;
+  NODE_UNIQUE_CONSTRAINTS = 032;
+  NODE_UNIQUE_CONSTRAINT = 033;
+  NODE_CHECK_CONSTRAINTS = 034;
+  NODE_CHECK_CONSTRAINT = 035;
+  NODE_TRIGGERS = 036;
+  NODE_TRIGGER = 037;
+  NODE_LOGS = 038;
   NODE_UNK = 999;
 
   { Image list indexes }
@@ -123,7 +102,6 @@ const
   NODE_DATABASES_DISCONNECTED_IMG = 2;
   NODE_BACKUP_ALIAS_IMG = 3;
   NODE_USER_IMG = 4;
-  NODE_CERTIFICATE_IMG = 5;
   NODE_DOMAINS_IMG = 6;
   NODE_TABLES_IMG = 7;
   NODE_VIEWS_IMG = 8;
@@ -145,7 +123,6 @@ const
   NODE_DATABASES_IMG = 24;
   NODE_BACKUP_ALIASES_IMG = 25;
   NODE_USERS_IMG = 26;
-  NODE_CERTIFICATES_IMG = 27;
   NODE_LOGS_IMG = 29;
   IMG_GRANT_OPT = 46;
 
@@ -159,8 +136,6 @@ const
     'Backup',
     'Users',
     'User',
-    'Certificates',
-    'Certificate',
     'Domains',
     'Domain',
     'Tables',
